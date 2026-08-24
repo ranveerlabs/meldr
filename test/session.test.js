@@ -1,11 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { resolveSession } from '../src/session.js'
 import { cmdDraft } from '../src/commands/draft.js'
 import { main } from '../src/cli.js'
+import { makeTmp } from './helpers.js'
 
 test('session resolves keys from env only and never exposes them', async () => {
   process.env.OPENAI_API_KEY = 'sk-test-abcdef0123456789'
@@ -58,9 +59,7 @@ test('chat sends the key only to the configured base url', async () => {
 })
 
 test('draft converts model output into a valid contract file (no network)', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'meldr-draft-'))
-  const prevCwd = process.cwd()
-  process.chdir(dir)
+  const dir = await makeTmp()
   process.env.OPENAI_API_KEY = 'sk-test-abcdef0123456789'
   try {
     const fake = async () => ({
@@ -96,7 +95,7 @@ test('draft converts model output into a valid contract file (no network)', asyn
     const realFetch = globalThis.fetch
     globalThis.fetch = fake
     try {
-      const code = await cmdDraft({}, [path.join(prevCwd, 'testdata', 'petstore.yaml')])
+      const code = await cmdDraft({ out: path.join(dir, 'contracts', 'api.yaml') }, [path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'testdata', 'petstore.yaml')])
       assert.equal(code, 0)
     } finally {
       globalThis.fetch = realFetch
@@ -108,7 +107,6 @@ test('draft converts model output into a valid contract file (no network)', asyn
     assert.match(written, /x-meldr/)
   } finally {
     delete process.env.OPENAI_API_KEY
-    process.chdir(prevCwd)
   }
 })
 
