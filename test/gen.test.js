@@ -1,0 +1,70 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+import { generateServer } from '../src/gen.js'
+import { petstoreSpec, makeTmp, freePort } from './helpers.js'
+
+test('generates a standalone server with handler stubs', async () => {
+  const spec = await petstoreSpec()
+  const dir = await makeTmp()
+  const out = path.join(dir, 'server.mjs')
+  const written = await generateServer(spec, out)
+  const code = await readFile(written, 'utf8')
+
+  assert.match(code, /'GET \/v1\/pets': async \(ctx\)/)
+  assert.match(code, /'DELETE \/v1\/pets\/\{id\}': async \(ctx\)/)
+  assert.match(code, /"title":"Meldr Petstore"/)
+  assert.equal(/\$ref/.test(JSON.parse(code.match(/const SPEC = (\{.*?\})\n\n/s)[1])), false)
+
+  await assert.rejects(generateServer(spec, out), /refusing to overwrite/)
+  const forced = await generateServer(spec, out, { force: true })
+  assert.equal(forced, out)
+})
+
+test('the generated server actually serves the API', async () => {
+  const spec = await petstoreSpec()
+  const dir = await makeTmp()
+  const out = path.join(dir, 'server.mjs')
+  await generateServer(spec, out)
+  await nodeCheck(out)
+
+  const port = await freePort()
+  const child = spawn(process.execPath, [out, '--port', String(port)], { stdio: 'ignore' })
+  try {
+    const base = `http://127.0.0.1:${port}`
+    await waitFor(base + '/__meldr/health')
+    const pet = await (await fetch(`${base}/v1/pets/1`)).json()
+    assert.equal(pet.name, 'Rex')
+    const list = await (await fetch(`${base}/v1/pets`)).json()
+    assert.ok(Array.isArray(list) && list.length >= 1)
+    const forced = await fetch(`${base}/v1/pets/1`, { headers: { 'x-meldr-status': '404' } })
+    assert.equal(forced.status, 404)
+    assert.equal((await forced.json()).code, 'not_found')
+  } finally {
+    child.kill('SIGKILL')
+  }
+}, 30000)
+
+async function nodeCheck(file) {
+  await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ['--check', file], { stdio: 'pipe' })
+    let err = ''
+    child.stderr.on('data', (d) => (err += d))
+    child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`node --check failed: ${err}`))))
+  })
+}
+
+async function waitFor(url, attempts = 40) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url)
+      if (res.ok) return
+    } catch {
+      /* not up yet */
+    }
+    await new Promise((r) => setTimeout(r, 250))
+  }
+  throw new Error(`server at ${url} never became healthy`)
+}

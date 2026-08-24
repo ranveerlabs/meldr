@@ -1,0 +1,35 @@
+name: Bug report
+description: Something in meldr is broken or behaves differently than the contract.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include exact commands and full output.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The smallest contract file and command sequence that reproduces it.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: meldr version
+      placeholder: output of `meldr version`
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - macOS
+        - Windows
+    validations:
+      required: true
