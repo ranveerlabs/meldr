@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# meldr local artifacts
+meldr.server.mjs
+server.mjs
+
+# logs & debug
+*.log
+npm-debug.log*
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# editors
+.idea/
+.vscode/
+*.swp
