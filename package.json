@@ -1,0 +1,44 @@
+{
+  "name": "meldr",
+  "version": "0.1.0",
+  "description": "Wire-compatible API replacements without the rebuild.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "meldr contributors",
+  "bin": {
+    "meldr": "bin/meldr.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "testdata/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "api",
+    "openapi",
+    "mock-server",
+    "contract-testing",
+    "compatibility",
+    "developer-tools",
+    "codegen"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ranveerlabs/meldr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ranveerlabs/meldr/issues"
+  },
+  "homepage": "https://github.com/ranveerlabs/meldr#readme",
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}
