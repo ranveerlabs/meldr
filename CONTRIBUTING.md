@@ -1,56 +1,35 @@
-# Contributing to meldr
+contributing to meldr
 
-Thanks for helping make meldr better. This project aims to stay dead simple:
-few dependencies, zero build steps, boring-but-excellent code.
+thanks for helping. this project stays dead simple:
 
-## Development setup
+development setup
+- node.js 20+ and npm
+- clone the repo and npm install
+- run npm test
 
-Prerequisites: Node.js 20+ and npm.
+try your changes:
+- npm link the package
+- create a demo dir
+- meldr init && meldr serve &
+- test your changes, then meldr verify
 
-```bash
-git clone https://github.com/ranveerlabs/meldr && cd meldr
-npm install
-npm test          # node:test suite
-node bin/meldr.js --help
-```
+ground rules
+- no build step. source is plain ESM javascript
+- minimal dependencies. new deps need strong justification
+- tests required. bug fixes need regression tests
+- deterministic output. no randomness without explicit opt-in
+- works on windows/macOS/linux. ci enforces it
 
-Try your changes end-to-end:
+pull requests
+- fork and branch from main
+- keep prs focused, one change each
+- ensure npm test passes
+- write a clear description: what, why, how you verified
+- update readme.md and changelog.md for new user-facing behavior
 
-```bash
-npm link
-mkdir /tmp/demo && cd /tmp/demo
-meldr init && meldr serve &
-meldr verify
-```
+bug reporting
+- open an issue with: what you ran, what you expected, what happened
+- smallest contract file that reproduces it
 
-## Ground rules
-
-- **No build step.** Source ships as plain ESM JavaScript. If a feature needs
-  a compiler, rethink the feature.
-- **Minimal dependencies.** New runtime dependencies need strong justification
-  in the PR description.
-- **Tests required.** Bug fixes need a regression test; features need coverage
-  of both happy paths and contract-drift cases.
-- **Deterministic output.** Never introduce nondeterminism (time, randomness,
-  map ordering) into served responses without an explicit opt-in flag.
-- **Windows/macOS/Linux.** Everything must work on all three; CI enforces it.
-
-## Pull requests
-
-1. Fork and create a branch from `main`.
-2. Keep PRs focused; one logical change per PR.
-3. Ensure `npm test` passes locally.
-4. Write a clear description: what, why, and how you verified it.
-5. New user-facing behavior? Update `README.md` and `CHANGELOG.md`.
-
-By submitting a PR you agree your contribution is licensed under the Apache
-License 2.0, same as the rest of the project.
-
-## Reporting bugs
-
-Open an issue with the bug template: what you ran, what you expected, what
-happened, and the smallest contract file that reproduces it.
-
-## Reporting vulnerabilities
-
-Do not open public issues for security reports — see [SECURITY.md](SECURITY.md).
+security reports
+- do not open public issues. see security.md.
