@@ -1,15 +1,21 @@
-meldr
+```
+███    ███  ████████  ██       ████████   ███████
+████  ████  ██        ██       ██     ██  ██    ██
+██ ████ ██  ██████    ██       ██     ██  ███████
+██  ██  ██  ██        ██       ██     ██  ██   ██ 
+██      ██  ████████  ████████ ████████   ██    ██ 
+```
 
-wire-compatible API replacements without the rebuild
+meldr — wire-compatible API replacements without the rebuild
 
 commands:
-  init       scaffold a project with a starter contract
-  pull       ingest an OpenAPI 3.x contract (file or URL)
-  serve      run a wire-compatible replacement server
-  gen        generate a standalone, dependency-free editable server
-  verify     verify a running implementation against the contract
-  draft      BYOK: draft a contract from a description via your own AI key
-  heal       self-maintain: auto-heal a meld from upstream drift or logs
+  init     scaffold a project with a starter contract
+  pull     ingest an OpenAPI 3.x contract (file or URL)
+  serve    run a wire-compatible replacement server
+  gen      generate a standalone, dependency-free editable server
+  verify   verify a running implementation against the contract
+  draft    BYOK: draft a contract from a description via your own AI key
+  heal     self-maintain: auto-heal a meld from upstream drift or logs
 
 quickstart:
   npm install -g github:ranveerlabs/meldr
@@ -37,10 +43,10 @@ config:
     port: 3000
     cors: false
 
-byok & zero leaks:
-  keys from env only (OPENAI_API_KEY, ANTHROPIC_API_KEY, MELDR_*_KEY)
-  in-memory only for the single command, never written to disk, never cached, never logged
-  output auto-scrubs key material with [redacted]
-  no telemetry, no tracking, pure local execution
+byok & zero leaks
+- keys from env only (OPENAI_API_KEY, ANTHROPIC_API_KEY, MELDR_*_KEY)
+- in-memory only for the single cmd session, never written to disk, never cached, never logged
+- output auto-scrubs key leaks with [redacted]
+- no telemetry, no tracking, pure local execution
 
 license: apache-2.0
