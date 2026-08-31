@@ -39,6 +39,6 @@
   },
   "homepage": "https://github.com/ranveerlabs/meldr#readme",
   "dependencies": {
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^5.4.1"
   }
 }
