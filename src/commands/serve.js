@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { loadConfig, servePort, contractPath } from '../config.js'
 import { replayIndex, summarizeRecording } from '../record.js'
+import { createStore } from '../state.js'
 import { loadSpec } from '../spec.js'
 import { createServer, routeList } from '../serve.js'
 import { CliError, c, pad } from '../ui.js'
@@ -32,13 +33,15 @@ export async function cmdServe(flags, args, ctx) {
     console.log(`  ${c.dim(`replaying ${from}, ${replay.size} of ${s.total} operations captured ${rec.recordedAt?.slice(0, 10) ?? ''}`)}`)
   }
 
-  const server = createServer(spec, { cors, replay })
+  const stateful = flags.stateful ?? config.stateful === true
+  const requireAuth = flags['require-auth'] ?? config.requireAuth === true
+  const server = createServer(spec, { cors, replay, requireAuth, state: stateful ? createStore() : null })
   await new Promise((resolve, reject) => {
     server.once('error', reject)
     server.listen(port, host, resolve)
   })
 
-  printBanner(spec, host, port, replay?.size ?? 0)
+  printBanner(spec, host, port, replay?.size ?? 0, stateful, requireAuth)
 
   await new Promise((resolve) => {
     const stop = () => {
@@ -62,7 +65,7 @@ async function loadSpecOrHint(contractPath) {
   }
 }
 
-function printBanner(spec, host, port, replayed) {
+function printBanner(spec, host, port, replayed, stateful, requireAuth) {
   const routes = routeList(spec)
   console.log('')
   console.log(`  ${c.cyan(c.bold('meldr'))} serving ${c.bold(spec.title)} v${spec.version}`)
@@ -73,6 +76,8 @@ function printBanner(spec, host, port, replayed) {
   }
   console.log('')
   if (replayed) console.log(c.dim(`  replaying ${replayed} recorded operation(s), the rest fall back to the contract`))
+  if (stateful) console.log(c.dim(`  stateful, writes survive until you stop the server`))
+  if (requireAuth) console.log(c.dim(`  401 on anything without a credential, any value passes`))
   console.log(c.dim(`  introspection: /__meldr/routes · /__meldr/contract · /__meldr/health`))
   console.log(c.dim(`  curl -H "X-Meldr-Status: <code>" any endpoint forces a declared response`))
   console.log(c.dim(`  ^C to stop`))

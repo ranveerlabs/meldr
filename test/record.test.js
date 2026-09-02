@@ -126,3 +126,35 @@ test('serve without a recording is unchanged', async () => {
     await close()
   }
 })
+
+test('a case per id records each one and replays the right one back', async () => {
+  const spec = await petstoreSpec()
+  const db = { 7: 'Ziggy', 8: 'Bowie', 9: 'Nina' }
+  const live = await serve((req, res) => {
+    const m = new URL(req.url, 'http://x').pathname.match(/\/v1\/pets\/(\d+)$/)
+    res.writeHead(200, { 'content-type': 'application/json' })
+    if (m) return res.end(JSON.stringify({ id: Number(m[1]), name: db[m[1]] ?? 'unknown' }))
+    res.end(JSON.stringify(Object.entries(db).map(([id, name]) => ({ id: Number(id), name }))))
+  })
+  let rec
+  try {
+    rec = await runRecord(spec, { base: live.url, cases: { showPetById: [{ id: 7 }, { id: 8 }, { id: 9 }] } })
+  } finally {
+    await live.close()
+  }
+  const byPath = rec.entries.filter((e) => e.path === '/pets/{id}' && e.method === 'get')
+  assert.equal(byPath.length, 3)
+
+  const server = createServer(spec, { replay: replayIndex(rec) })
+  await new Promise((r) => server.listen(0, '127.0.0.1', r))
+  const base = `http://127.0.0.1:${server.address().port}`
+  try {
+    assert.equal((await (await fetch(`${base}/v1/pets/7`)).json()).name, 'Ziggy')
+    assert.equal((await (await fetch(`${base}/v1/pets/8`)).json()).name, 'Bowie')
+    assert.equal((await (await fetch(`${base}/v1/pets/9`)).json()).name, 'Nina')
+    // nothing was taped for 99, it falls back rather than 404ing
+    assert.equal((await fetch(`${base}/v1/pets/99`)).status, 200)
+  } finally {
+    await new Promise((r) => server.close(r))
+  }
+})

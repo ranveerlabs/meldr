@@ -25,8 +25,8 @@ const COMMANDS = {
   },
   serve: {
     summary: 'run a wire-compatible replacement server',
-    usage: 'meldr serve [--from recording.json] [--port N] [--host H] [--cors] [--contract path]',
-    flags: { from: 'string', port: 'int', host: 'string', cors: 'bool', contract: 'string', config: 'string' },
+    usage: 'meldr serve [--stateful] [--require-auth] [--from recording.json] [--port N] [--cors]',
+    flags: { stateful: 'bool', 'require-auth': 'bool', from: 'string', port: 'int', host: 'string', cors: 'bool', contract: 'string', config: 'string' },
     run: cmdServe,
   },
   gen: {

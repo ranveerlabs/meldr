@@ -127,6 +127,41 @@ expect
 anything not in the recording falls back to the contract, and X-Meldr-Status
 still forces a declared response so your retry paths stay testable
 
+one response per operation by default. list the ids you care about and it
+captures each
+
+```yaml
+record:
+  cases:
+    getTrack:
+      - {id: 11dFghVXANMlKmJXsNCbNl}
+      - {id: 4cOdK2wGLETKBW3PvgPWqT}
+```
+
+replay picks the entry matching the id you asked for. ask for an id that was
+never taped and you get the first one back, not a 404, so keep that in mind
+before you trust a response you didnt record
+
+building against it
+
+a mock that forgets everything is a read only view, you cant build a playlist
+editor against it. --stateful gives you a store
+
+```
+meldr serve --stateful --require-auth
+```
+
+POST to a collection keeps it, GET the item reads it back, PUT and PATCH update
+it, DELETE means the next read is a 404, and the list reflects all of it. the
+collection seeds itself from the contract on first touch so a fresh client isnt
+staring at an empty page. it lives in memory and dies with the server
+
+--require-auth 401s anything without a credential, honouring whatever
+securitySchemes the contract declares. any value passes, its there so you can
+build the token plumbing and the refresh-on-401 path, its not checking anything
+
+both are off unless you ask, so verify and gen stay deterministic
+
 pointing it at a real api
 
 synthetic ids 404 and unauthenticated calls 401, so both are worth pinning.

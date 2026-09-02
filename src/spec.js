@@ -130,6 +130,7 @@ function convert(doc, warnings) {
     version: str(info.version) || '0.0.0',
     servers: extractServers(doc.servers),
     operations: [],
+    security: securitySchemes(doc),
     warnings,
     doc,
   }
@@ -149,6 +150,16 @@ function convert(doc, warnings) {
 
 function toArray(v) {
   return Array.isArray(v) ? v : []
+}
+
+function securitySchemes(doc) {
+  const node = isMap(doc.components) && isMap(doc.components.securitySchemes) ? doc.components.securitySchemes : {}
+  const out = []
+  for (const [name, v] of Object.entries(node)) {
+    if (!isMap(v)) continue
+    out.push({ name, type: str(v.type), in: str(v.in), paramName: str(v.name), scheme: str(v.scheme) })
+  }
+  return out
 }
 
 function extractServers(servers) {

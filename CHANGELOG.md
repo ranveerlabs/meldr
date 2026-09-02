@@ -26,4 +26,10 @@ changelog
   together deepseek and local servers work with --base-url
 - meldr record, one real request per operation saved to recording.json, and
   meldr serve --from replays it. credential fields are scrubbed before writing
+- meldr serve --stateful, writes survive to reads so a client can be built
+  against it. collections seed from the contract on first touch
+- meldr serve --require-auth, 401 without a credential, driven by the
+  contract's securitySchemes. any value passes
+- record.cases captures several responses per operation and replay picks the
+  one matching the id asked for
 

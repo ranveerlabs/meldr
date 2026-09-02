@@ -14,13 +14,23 @@ export async function runRecord(spec, opts = {}) {
   const timeoutMs = opts.timeoutMs ?? 15000
   let scrubbed = 0
 
-  const entries = await pool(spec.operations, opts.concurrency ?? 4, async (op) => {
-    const req = buildRequest(spec, op, base, prefix, opts)
+  // one job per case, so /tracks/{id} can capture more than a single track
+  const cases = opts.cases ?? {}
+  const jobs = []
+  for (const op of spec.operations) {
+    const mine = Array.isArray(cases[op.id]) ? cases[op.id] : []
+    if (!mine.length) jobs.push({ op, pins: null })
+    else for (const pins of mine) jobs.push({ op, pins })
+  }
+
+  const entries = await pool(jobs, opts.concurrency ?? 4, async ({ op, pins }) => {
+    const params = pins ? { ...opts.params, [op.id]: { ...(opts.params?.[op.id] ?? {}), ...pins } } : opts.params
+    const req = buildRequest(spec, op, base, prefix, { ...opts, params })
     let res
     try {
       res = await send(req.url, { method: req.method, headers: req.headers, body: req.body }, timeoutMs)
     } catch (e) {
-      return { method: op.method, path: op.path, label: req.label, error: e.message }
+      return { method: op.method, path: op.path, label: req.label, params: pins, error: e.message }
     }
     const text = await res.text()
     const type = String(res.headers.get('content-type') ?? '')
@@ -38,6 +48,7 @@ export async function runRecord(spec, opts = {}) {
       method: op.method,
       path: op.path,
       label: req.label,
+      params: pins,
       // the url is here so you can see what was actually asked for
       url: req.url.slice(base.length),
       status: res.status,
@@ -80,9 +91,25 @@ export function replayIndex(recording) {
   const map = new Map()
   for (const e of recording.entries ?? []) {
     if (e.error) continue
-    map.set(`${e.method} ${e.path}`, e)
+    const k = `${e.method} ${e.path}`
+    if (!map.has(k)) map.set(k, [])
+    map.get(k).push(e)
   }
   return map
+}
+
+// an entry pinned to the id you asked for wins, otherwise the first one taped
+export function pickEntry(entries, vars, searchParams) {
+  if (!entries || !entries.length) return null
+  for (const e of entries) {
+    if (!e.params) continue
+    const hit = Object.entries(e.params).every(([k, v]) => {
+      const actual = vars?.[k] ?? searchParams?.get(k)
+      return actual !== undefined && actual !== null && String(actual) === String(v)
+    })
+    if (hit) return e
+  }
+  return entries.find((e) => !e.params) ?? entries[0]
 }
 
 export function summarizeRecording(recording) {

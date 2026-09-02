@@ -30,17 +30,19 @@ export async function cmdRecord(flags) {
     concurrency: flags.concurrency ?? config.concurrency ?? 4,
     headers: headersFor(config, flags.header),
     params: paramsFor(config, flags.param),
+    cases: config.record?.cases ?? {},
   })
 
   const width = Math.min(Math.max(...rec.entries.map((e) => e.label.length), 2), 44)
   for (const e of rec.entries) {
+    const pinned = e.params ? c.dim(` ${JSON.stringify(e.params)}`) : ''
     if (e.error) {
-      console.log(`${pad(e.label, width)}  ${c.red('DEAD')}      ${c.dim(e.error)}`)
+      console.log(`${pad(e.label, width)}  ${c.red('DEAD')}      ${c.dim(e.error)}${pinned}`)
       continue
     }
     const tag = e.status >= 400 ? c.yellow(String(e.status)) : c.green(String(e.status))
     const size = typeof e.body === 'string' ? e.body.length : JSON.stringify(e.body ?? null).length
-    console.log(`${pad(e.label, width)}  ${pad(tag, 4)} ${c.dim(`${size} bytes`)}`)
+    console.log(`${pad(e.label, width)}  ${pad(tag, 4)} ${c.dim(`${size} bytes`)}${pinned}`)
   }
 
   const out = path.resolve(flags.out ?? 'recording.json')

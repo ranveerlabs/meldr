@@ -1,6 +1,8 @@
 import http from 'node:http'
 import { selectMedia, value, mediaExample, preferJson } from './mock.js'
 import { lookupResponse, pickSuccess, declaredStatusKeys } from './spec.js'
+import { handle as handleState } from './state.js'
+import { pickEntry } from './record.js'
 import { c } from './ui.js'
 
 const MAX_BODY_BYTES = 2 * 1024 * 1024
@@ -88,6 +90,12 @@ async function handleRequest(req, res, spec, opts) {
   }
 
   const { op } = matchResult.route
+  if (opts.requireAuth && !credentialled(spec, req, url)) {
+    const declared = lookupResponse(op, 401)
+    const media = declared ? preferJson(declared.content) : null
+    return respond(res, 401, media ? value(media.schema, '', 'out') : { error: 'unauthorized', message: 'no credential on the request' })
+  }
+  const vars = matchResult.vars ?? {}
   const violations = []
 
   for (const p of op.params) {
@@ -143,8 +151,19 @@ async function handleRequest(req, res, spec, opts) {
     if (v !== undefined && v !== null) headers[name.toLowerCase()] = String(v)
   }
 
+  // writes have to survive a read or you cant build anything past a list view
+  if (opts.state && forced === undefined) {
+    const out = handleState(opts.state, spec, op, vars, rawBody)
+    if (out) {
+      if (opts.cors) applyCors(res)
+      const h = out.body === null ? {} : { 'content-type': 'application/json; charset=utf-8' }
+      res.writeHead(out.status, h)
+      return res.end(out.body === null ? '' : JSON.stringify(out.body))
+    }
+  }
+
   // a recording of the real thing beats anything synthesised from the schema
-  const taped = opts.replay?.get(`${op.method} ${op.path}`)
+  const taped = pickEntry(opts.replay?.get(`${op.method} ${op.path}`), vars, url.searchParams)
   if (taped && forced === undefined) {
     const headers2 = taped.contentType ? { 'content-type': taped.contentType } : {}
     if (opts.cors) applyCors(res)
@@ -167,6 +186,19 @@ function statusColor(code) {
   if (code >= 500) return c.red(String(code))
   if (code >= 400) return c.yellow(String(code))
   return c.green(String(code))
+}
+
+// any non empty credential passes. this is here so you can build the auth
+// plumbing, it is not checking anything
+function credentialled(spec, req, url) {
+  const schemes = spec.security ?? []
+  if (!schemes.length) return Boolean(req.headers.authorization)
+  return schemes.some((s) => {
+    if (s.type === 'apiKey' && s.in === 'header') return Boolean(req.headers[s.paramName.toLowerCase()])
+    if (s.type === 'apiKey' && s.in === 'query') return Boolean(url.searchParams.get(s.paramName))
+    if (s.type === 'apiKey' && s.in === 'cookie') return String(req.headers.cookie ?? '').includes(`${s.paramName}=`)
+    return Boolean(req.headers.authorization)
+  })
 }
 
 function applyCors(res) {
