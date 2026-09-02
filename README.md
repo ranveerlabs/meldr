@@ -84,7 +84,7 @@ heal     self-maintain: pull the contract back onto the live api
 quickstart
 
 ```
-npm install -g @ranveerlabs/meldr
+npm install -g github:ranveerlabs/meldr
 mkdir demo && cd demo
 meldr init
 meldr serve &
