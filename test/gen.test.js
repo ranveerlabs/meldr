@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { generateServer } from '../src/gen.js'
-import { petstoreSpec, makeTmp, freePort } from './helpers.js'
+import { petstoreSpec, makeTmp, freePort, startServer } from './helpers.js'
 
 test('generates a standalone server with handler stubs', async () => {
   const spec = await petstoreSpec()
@@ -68,3 +68,38 @@ async function waitFor(url, attempts = 40) {
   }
   throw new Error(`server at ${url} never became healthy`)
 }
+
+// serve and gen carry separate copies of the synthesis, so they can drift apart
+// without anyone noticing. wire compatible has to mean byte identical
+test('the generated server answers exactly what serve answers', async () => {
+  const spec = await petstoreSpec()
+  const dir = await makeTmp()
+  const out = path.join(dir, 'server.mjs')
+  await generateServer(spec, out)
+
+  const live = await startServer(spec)
+  const port = await freePort()
+  const child = spawn(process.execPath, [out, '--port', String(port)], { stdio: 'ignore' })
+  const genBase = `http://127.0.0.1:${port}`
+  try {
+    await waitFor(genBase + '/__meldr/health')
+    const routes = (await (await fetch(genBase + '/__meldr/routes')).json()).routes
+    assert.ok(routes.length >= 4)
+
+    for (const r of routes) {
+      const url = r.path.replace(/\{[^}]+\}/g, '1')
+      const opts = { method: r.method, headers: { accept: 'application/json' } }
+      if (r.method === 'POST' || r.method === 'PUT' || r.method === 'PATCH') {
+        opts.headers['content-type'] = 'application/json'
+        opts.body = '{}'
+      }
+      const a = await fetch(live.url + url, opts)
+      const b = await fetch(genBase + url, opts)
+      assert.equal(b.status, a.status, `${r.method} ${url} status`)
+      assert.equal(await b.text(), await a.text(), `${r.method} ${url} body`)
+    }
+  } finally {
+    child.kill('SIGKILL')
+    await live.close()
+  }
+}, 30000)
