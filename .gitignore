@@ -8,6 +8,8 @@ server.mjs
 # logs & debug
 *.log
 npm-debug.log*
+serve.err
+serve.out
 
 # env & secrets
 .env
