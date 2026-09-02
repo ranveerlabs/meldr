@@ -19,7 +19,7 @@ export async function cmdGen(flags) {
   console.log(`${c.green('✓')} wrote ${c.bold(path.relative(process.cwd(), written) || written)}`)
   console.log(`  ${routes} routes · zero dependencies · handlers fall back to contract-faithful mocks`)
   console.log('')
-  console.log(c.dim(`Next:`))
+  console.log(c.dim(`next`))
   console.log(c.dim(`  node ${path.basename(written)}          # run it`))
   console.log(c.dim(`  edit the HANDLERS map to take over routes one by one`))
   console.log(c.dim(`  meldr verify --base http://localhost:3000   # prove compatibility either way`))

@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 import yaml from 'js-yaml'
 import { STARTER_CONTRACT } from '../config.js'
-import { CliError, c, pad } from '../ui.js'
+import { CliError, c } from '../ui.js'
 
 export async function cmdInit(flags, args) {
   const target = path.resolve(args[0] ?? '.')
@@ -31,7 +31,7 @@ export async function cmdInit(flags, args) {
   console.log(`${c.green('✓')} created ${c.bold('meldr.yaml')}`)
   console.log(`${c.green('✓')} created ${c.bold('contracts/api.yaml')} (starter contract: GET /ping)`)
   console.log('')
-  console.log(c.dim(pad('Next:', 8)))
+  console.log(c.dim('next'))
   console.log(`  meldr serve            # /ping goes live instantly`)
   console.log(`  curl localhost:3000/ping`)
   console.log(`  meldr pull <file|url>  # replace a real API from its OpenAPI contract`)

@@ -1,16 +1,10 @@
 code of conduct
 
-pledge: keep it chill. no harassment, no drama, be respectful.
+keep it chill. be kind, respect that people disagree with you, take the
+feedback, own it when you get something wrong
 
-basics:
-- treat others with kindness
-- respect differing opinions
-- accept constructive feedback
-- own your mistakes
+harassment, trolling, personal attacks, posting someones private info. those
+are the lines, dont
 
-unacceptable:
-- harassment, trolling, personal attacks
-- publishing private info without permission
-- any inappropriate professional conduct
-
-report issues via github. this project follows the contributor covenant spirit.
+report anything through github. this follows the contributor covenant in spirit
+if not in text

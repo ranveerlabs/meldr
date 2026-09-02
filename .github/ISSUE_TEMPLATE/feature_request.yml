@@ -1,25 +1,25 @@
-name: Feature request
-description: Suggest an idea for meldr.
+name: feature request
+description: something meldr should do and doesnt
 labels: [enhancement]
 body:
   - type: textarea
     id: problem
     attributes:
-      label: Problem
-      description: What are you trying to do, and what is missing or painful today?
+      label: problem
+      description: what are you trying to do, and what is missing or painful right now
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
-      label: Proposed solution
-      description: What would dead-simple look like for you?
+      label: what you want instead
+      description: what would the lazy version of this look like
     validations:
       required: true
   - type: checkboxes
     id: checklist
     attributes:
-      label: Checks
+      label: checks
       options:
-        - label: I checked the roadmap in README.md and this isn't already listed
+        - label: i searched the open issues and this isnt already one
           required: false

@@ -1,18 +1,16 @@
-<!--
-  Thank you for contributing to meldr!
--->
+<!-- one logical change per pr -->
 
-## What
+what
 
-<!-- What does this PR change? One logical change per PR. -->
+<!-- what does this change -->
 
-## Why
+why
 
-<!-- Link the issue, or explain the motivation. -->
+<!-- link the issue, or just say what pushed you to it -->
 
-## How I verified it
+how you checked it
 
-- [ ] `npm test` passes locally
-- [ ] Verified end-to-end with `meldr init / pull / serve / verify`
-- [ ] Works on Windows/macOS/Linux (CI covers this)
-- [ ] Updated `README.md` / `CHANGELOG.md` if behavior changed
+- [ ] `npm test` green locally
+- [ ] ran it end to end: `meldr init / pull / serve / verify`
+- [ ] windows/macos/linux (ci covers this)
+- [ ] `README.md` / `CHANGELOG.md` updated if behavior moved

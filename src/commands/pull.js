@@ -38,11 +38,11 @@ export async function cmdPull(flags, args) {
   }
 
   console.log(`${c.green('✓')} pulled ${c.bold(spec.title)} v${spec.version}`)
-  console.log(`  → ${dest}`)
+  console.log(`  -> ${dest}`)
   console.log(`  ${spec.operations.length} operations · servers: ${spec.servers.join(', ')}`)
   for (const w of spec.warnings) console.log(`  ${c.yellow('warning:')} ${w}`)
   console.log('')
-  console.log(c.dim(`Next:`))
+  console.log(c.dim(`next`))
   console.log(c.dim(`  meldr serve     # replacement is live`))
   console.log(c.dim(`  meldr verify    # prove it matches the contract`))
   return 0

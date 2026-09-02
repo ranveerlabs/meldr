@@ -45,14 +45,14 @@ function printBanner(spec, host, port) {
   const routes = routeList(spec)
   console.log('')
   console.log(`  ${c.cyan(c.bold('meldr'))} serving ${c.bold(spec.title)} v${spec.version}`)
-  console.log(`  ${c.dim('→')} http://${host}:${port}${spec.servers[0] === '/' ? '' : spec.servers[0]}`)
+  console.log(`  ${c.dim('->')} http://${host}:${port}${spec.servers[0] === '/' ? '' : spec.servers[0]}`)
   console.log('')
   for (const r of routes) {
     console.log(`  ${c.green(pad(r.method, 7))}${c.dim(r.path)}${r.summary ? c.dim(`   ${r.summary}`) : ''}`)
   }
   console.log('')
   console.log(c.dim(`  introspection: /__meldr/routes · /__meldr/contract · /__meldr/health`))
-  console.log(c.dim(`  tip: curl -H "X-Meldr-Status: <code>" any endpoint to force a declared response`))
+  console.log(c.dim(`  curl -H "X-Meldr-Status: <code>" any endpoint forces a declared response`))
   console.log(c.dim(`  ^C to stop`))
   console.log('')
 }

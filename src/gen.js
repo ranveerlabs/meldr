@@ -46,10 +46,9 @@ export function buildEmbed(spec) {
 export function buildHandlers(embed) {
   const lines = []
   for (const r of embed.routes) {
-    const label = r.summary ? `${r.id} — ${r.summary}` : r.id
+    const label = r.summary ? `${r.id}, ${r.summary}` : r.id
     lines.push(`  '${r.method.toUpperCase()} ${r.fullPath}': async (ctx) => {`)
     lines.push(`    // ${label}`)
-    lines.push(`    // TODO: implement, or leave undefined to keep the contract-faithful fallback.`)
     lines.push(`    return undefined`)
     lines.push(`  },`)
   }

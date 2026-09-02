@@ -34,7 +34,7 @@ export function parseSpec(text) {
   if (!isMap(doc)) throw new Error('contract root must be a mapping')
   const version = String(doc.openapi ?? '')
   if (!version.startsWith('3.')) {
-    throw new Error(`unsupported OpenAPI version "${version || '(missing)'}" — meldr requires OpenAPI 3.x`)
+    throw new Error(`unsupported OpenAPI version "${version || '(missing)'}", meldr wants OpenAPI 3.x`)
   }
   const warnings = []
   const dereferenced = deref(doc, doc, [], 0, warnings)
@@ -64,7 +64,7 @@ function numOrNull(v) {
 
 function resolvePointer(root, ref) {
   if (ref === '#') return root
-  if (!ref.startsWith('#/')) throw new Error(`external $ref "${ref}" is not supported yet — inline the referenced document`)
+  if (!ref.startsWith('#/')) throw new Error(`external $ref "${ref}" is not supported yet, inline the referenced document`)
   let node = root
   for (const rawSeg of ref.slice(2).split('/')) {
     const seg = rawSeg.replace(/~1/g, '/').replace(/~0/g, '~')
@@ -102,7 +102,7 @@ function deref(root, node, seen, depth, warnings) {
   if (ref) {
     const target = resolvePointer(root, ref)
     if (target === undefined) {
-      warnings.push(`unresolved $ref "${ref}" — replaced with an empty object`)
+      warnings.push(`unresolved $ref "${ref}", replaced with an empty object`)
       return { __meldrCycle: true }
     }
     if (seen.includes(ref)) return { __meldrCycle: true }

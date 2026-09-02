@@ -1,35 +1,20 @@
-contributing to meldr
+contributing
 
-thanks for helping. this project stays dead simple:
+node 20+, clone it, npm install, npm test. thats the whole setup, theres no
+build step and the source is plain ESM
 
-development setup
-- node.js 20+ and npm
-- clone the repo and npm install
-- run npm test
+to try a change, npm link the package, make a demo dir somewhere, then
+`meldr init && meldr serve &` and poke at it with meldr verify
 
-try your changes:
-- npm link the package
-- create a demo dir
-- meldr init && meldr serve &
-- test your changes, then meldr verify
+things the project actually cares about. no build step. few dependencies and a
+new one needs a real argument behind it. bug fixes come with a regression test.
+output stays deterministic unless you opt into randomness on purpose.
+windows/macos/linux all have to work, ci runs all three so dont guess
 
-ground rules
-- no build step. source is plain ESM javascript
-- minimal dependencies. new deps need strong justification
-- tests required. bug fixes need regression tests
-- deterministic output. no randomness without explicit opt-in
-- works on windows/macOS/linux. ci enforces it
+prs branch off main, one change each, npm test green. say what you did and how
+you checked it. readme.md and changelog.md move when user-facing behavior moves
 
-pull requests
-- fork and branch from main
-- keep prs focused, one change each
-- ensure npm test passes
-- write a clear description: what, why, how you verified
-- update readme.md and changelog.md for new user-facing behavior
+for a bug, open an issue with what you ran, what you expected, what actually
+happened, and the smallest contract file that does it
 
-bug reporting
-- open an issue with: what you ran, what you expected, what happened
-- smallest contract file that reproduces it
-
-security reports
-- do not open public issues. see security.md.
+security stuff doesnt go in a public issue, security.md has the details

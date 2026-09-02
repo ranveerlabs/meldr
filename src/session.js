@@ -41,7 +41,7 @@ export function resolveSession({ provider = 'openai', baseUrl } = {}) {
       break
     }
   }
-  if (!key) throw new CliError(`no API key found for provider "${provider}"`, `meldr is BYOK and session-only: set ${spec.envKeys.join(' or ')} in your environment — it is never written to disk`)
+  if (!key) throw new CliError(`no API key found for provider "${provider}"`, `meldr is BYOK and session-only: set ${spec.envKeys.join(' or ')} in your environment, it is never written to disk`)
   return makeSession(provider, key, baseUrl || process.env.MELDR_AI_BASE_URL || spec.defaultBase)
 }
 

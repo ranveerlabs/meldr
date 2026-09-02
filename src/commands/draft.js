@@ -21,7 +21,7 @@ export async function cmdDraft(flags, args) {
   }
   if (!input.trim()) throw new CliError('input is empty')
 
-  console.error(c.dim(`  drafting contract via ${session.provider} (${session.baseUrl}) — key stays in memory for this command only`))
+  console.error(c.dim(`  drafting contract via ${session.provider} (${session.baseUrl}), key stays in memory for this command only`))
 
   const raw = await session.chat({ system: SYSTEM_PROMPT, user: input.slice(0, 60000), model: flags.model })
   const parsed = extractJson(raw)
@@ -32,9 +32,9 @@ export async function cmdDraft(flags, args) {
   await writeFile(out, yaml.dump(doc))
 
   const ops = doc.paths ? Object.keys(doc.paths).length : 0
-  console.log(`${c.green('✓')} drafted ${c.bold(doc.info.title)} — ${ops} path(s) → ${path.relative(process.cwd(), out) || out}`)
-  console.log(c.yellow(`  AI drafts are starting points: review every operation before relying on it.`))
-  console.log(c.dim(`Next:`))
+  console.log(`${c.green('✓')} drafted ${c.bold(doc.info.title)}, ${ops} path(s) -> ${path.relative(process.cwd(), out) || out}`)
+  console.log(c.yellow(`  drafts are a starting point, read every operation before you lean on it`))
+  console.log(c.dim(`next`))
   console.log(c.dim(`  meldr serve      # see the draft running`))
   console.log(c.dim(`  meldr verify     # then prove it against the real thing`))
   return 0
