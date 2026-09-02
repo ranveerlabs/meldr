@@ -13,3 +13,6 @@ changelog
   undeclared statuses, moved success codes), --ai only for the leftovers
 - meldr verify --heal, verify, fix the stale contract, re-verify, one command
 - meldr heal --check, writes nothing, exits 1 on drift, for CI
+- mock bodies vary across array elements and take a hint from the field name,
+  duration_ms is 213000 not 1 and available_markets is [US, GB] not [meldr,
+  meldr]. same values out of serve and gen, theres a test on that now

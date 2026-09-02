@@ -14,7 +14,6 @@ const FORMAT_VALUES = {
 }
 
 const NAME_VALUES = {
-  id: 'id_1',
   name: 'meldr-demo',
   title: 'Meldr Demo',
   description: 'A wonderful resource.',
@@ -35,13 +34,60 @@ const NAME_VALUES = {
   label: 'core',
 }
 
+// checked in order after the exact table, first match wins. index makes array
+// elements differ from each other instead of repeating the same value
+const NAME_RULES = [
+  [/(^|_)ids?$|Ids?$/, (i) => `id_${i + 1}`],
+  [/(url|uri|href)$/i, (i) => `https://example.com/resource/${i + 1}`],
+  [/(_at|_on)$|timestamp/i, () => '2024-01-15T10:30:00Z'],
+  [/email/i, (i) => `user${i + 1}@example.com`],
+  [/(market|country|region)s?$/i, (i) => ['US', 'GB', 'DE'][i % 3]],
+  [/(locale|language|lang)$/i, () => 'en_US'],
+  [/(name|title|label)$/i, (i) => `meldr-demo-${i + 1}`],
+  [/(type|kind)$/i, () => 'standard'],
+]
+
+const INT_RULES = [
+  [/_ms$|duration/i, 213000],
+  [/(popularity|score|rating)$/i, 62],
+  [/(total|count)$/i, 25],
+  [/(height|width|size)$/i, 640],
+  [/limit$/i, 20],
+  [/offset$/i, 0],
+  [/year$/i, 2024],
+]
+
+function stringFor(table, name, i) {
+  const nm = String(name ?? '').toLowerCase()
+  const exact = table[nm]
+  if (exact !== undefined) return i === 0 ? exact : `${exact}-${i + 1}`
+  for (const [re, fn] of NAME_RULES) if (re.test(String(name ?? ''))) return fn(i)
+  return i === 0 ? 'meldr' : `meldr-${i + 1}`
+}
+
+function numFor(schema, name, i, fallback) {
+  let base = fallback
+  for (const [re, v] of INT_RULES) {
+    if (re.test(String(name ?? ''))) {
+      base = v
+      break
+    }
+  }
+  let n = base + i
+  const lo = schema.minimum
+  const hi = schema.maximum
+  if (lo !== null && lo !== undefined && n < lo) n = lo
+  if (hi !== null && hi !== undefined && n > hi) n = hi
+  return n
+}
+
 const MAX_DEPTH = 6
 
-export function value(schema, name = '', dir = 'out', depth = 0) {
+export function value(schema, name = '', dir = 'out', depth = 0, i = 0) {
   if (!schema || schema.type === 'any') return null
   if (schema.type === 'never') return undefined
 
-  if (depth >= MAX_DEPTH) return synthLeaf(schema, name)
+  if (depth >= MAX_DEPTH) return synthLeaf(schema, name, i)
 
   if (schema.example !== undefined) return clone(schema.example)
   if (schema.examples && schema.examples.length) return clone(schema.examples[0])
@@ -52,20 +98,20 @@ export function value(schema, name = '', dir = 'out', depth = 0) {
 
   switch (schema.type) {
     case 'object':
-      return synthObject(schema, name, dir, depth)
+      return synthObject(schema, name, dir, depth, i)
     case 'array':
-      return synthArray(schema, name, dir, depth)
+      return synthArray(schema, name, dir, depth, i)
     default:
-      return synthLeaf(schema, name)
+      return synthLeaf(schema, name, i)
   }
 }
 
-function synthObject(schema, name, dir, depth) {
+function synthObject(schema, name, dir, depth, i = 0) {
   const obj = {}
   for (const prop of Object.values(schema.properties)) {
     if (dir === 'request' && prop.readOnly) continue
     if (dir === 'out' && prop.writeOnly) continue
-    obj[prop.name] = value(prop.schema, prop.name, dir, depth + 1)
+    obj[prop.name] = value(prop.schema, prop.name, dir, depth + 1, i)
   }
   return obj
 }
@@ -76,30 +122,23 @@ function synthArray(schema, name, dir, depth) {
   if (schema.maxItems >= 0) n = Math.min(n, schema.maxItems)
   if (n < 0) n = 0
   if (!schema.items) return []
-  return Array.from({ length: n }, () => value(schema.items, name, dir, depth + 1))
+  return Array.from({ length: n }, (_, k) => value(schema.items, name, dir, depth + 1, k))
 }
 
-function synthLeaf(schema, name) {
+function synthLeaf(schema, name, i = 0) {
   switch (schema.type) {
     case 'string':
-      return NAME_VALUES[name.toLowerCase()] ?? 'meldr'
-    case 'integer': {
-      const lo = schema.minimum ?? 1
-      const hi = schema.maximum
-      const n = hi !== null && lo > hi ? hi : lo
-      return Math.trunc(n)
-    }
-    case 'number': {
-      const lo = schema.minimum ?? 1.25
-      const hi = schema.maximum
-      return hi !== null && lo > hi ? hi : lo
-    }
+      return stringFor(NAME_VALUES, name, i)
+    case 'integer':
+      return Math.trunc(numFor(schema, name, i, 1))
+    case 'number':
+      return numFor(schema, name, i, 1.25)
     case 'boolean':
       return true
     case 'null':
       return null
     default:
-      return NAME_VALUES[name.toLowerCase()] ?? null
+      return NAME_VALUES[String(name ?? '').toLowerCase()] ?? null
   }
 }
 

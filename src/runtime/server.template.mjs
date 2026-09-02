@@ -31,7 +31,6 @@ const FORMATS = {
 }
 
 const NAMES = {
-  id: 'id_1',
   name: 'meldr-demo',
   title: 'Meldr Demo',
   description: 'A wonderful resource.',
@@ -52,29 +51,76 @@ const NAMES = {
   label: 'core',
 }
 
+// checked in order after the exact table, first match wins. index makes array
+// elements differ from each other instead of repeating the same value
+const NAME_RULES = [
+  [/(^|_)ids?$|Ids?$/, (i) => `id_${i + 1}`],
+  [/(url|uri|href)$/i, (i) => `https://example.com/resource/${i + 1}`],
+  [/(_at|_on)$|timestamp/i, () => '2024-01-15T10:30:00Z'],
+  [/email/i, (i) => `user${i + 1}@example.com`],
+  [/(market|country|region)s?$/i, (i) => ['US', 'GB', 'DE'][i % 3]],
+  [/(locale|language|lang)$/i, () => 'en_US'],
+  [/(name|title|label)$/i, (i) => `meldr-demo-${i + 1}`],
+  [/(type|kind)$/i, () => 'standard'],
+]
+
+const INT_RULES = [
+  [/_ms$|duration/i, 213000],
+  [/(popularity|score|rating)$/i, 62],
+  [/(total|count)$/i, 25],
+  [/(height|width|size)$/i, 640],
+  [/limit$/i, 20],
+  [/offset$/i, 0],
+  [/year$/i, 2024],
+]
+
+function stringFor(table, name, i) {
+  const nm = String(name ?? '').toLowerCase()
+  const exact = table[nm]
+  if (exact !== undefined) return i === 0 ? exact : `${exact}-${i + 1}`
+  for (const [re, fn] of NAME_RULES) if (re.test(String(name ?? ''))) return fn(i)
+  return i === 0 ? 'meldr' : `meldr-${i + 1}`
+}
+
+function numFor(schema, name, i, fallback) {
+  let base = fallback
+  for (const [re, v] of INT_RULES) {
+    if (re.test(String(name ?? ''))) {
+      base = v
+      break
+    }
+  }
+  let n = base + i
+  const lo = schema.minimum
+  const hi = schema.maximum
+  if (lo !== null && lo !== undefined && n < lo) n = lo
+  if (hi !== null && hi !== undefined && n > hi) n = hi
+  return n
+}
+
 const MAX_DEPTH = 6
 
-function synth(schema, propName, dir, depth = 0) {
+function synth(schema, propName, dir, depth = 0, i = 0) {
   if (!schema || schema.type === 'any') return null
   if (schema.type === 'never') return undefined
-  if (depth >= MAX_DEPTH) return leaf(schema, propName)
+  if (depth >= MAX_DEPTH) return leaf(schema, propName, i)
   if (schema.example !== undefined) return clone(schema.example)
   if (Array.isArray(schema.examples) && schema.examples.length) return clone(schema.examples[0])
   if (schema.default !== undefined) return clone(schema.default)
   if (Array.isArray(schema.enum) && schema.enum.length) return clone(schema.enum[0])
   if (schema.const !== undefined) return clone(schema.const)
   if (FORMATS[schema.format] !== undefined) return FORMATS[schema.format]
-  if (schema.type === 'object') return synthObject(schema, dir, depth)
-  if (schema.type === 'array') return synthArray(schema, propName, dir, depth)
-  return leaf(schema, propName)
+  if (schema.type === 'object') return synthObject(schema, dir, depth, i)
+  if (schema.type === 'array') return synthArray(schema, propName, dir, depth, i)
+  return leaf(schema, propName, i)
 }
 
-function synthObject(schema, dir, depth) {
+function synthObject(schema, dir, depth, i = 0) {
   const obj = {}
   for (const prop of Object.values(schema.properties ?? {})) {
     if (dir === 'request' && prop.readOnly) continue
     if (dir === 'out' && prop.writeOnly) continue
-    obj[prop.name] = synth(prop.schema, prop.name, dir, depth + 1)
+    obj[prop.name] = synth(prop.schema, prop.name, dir, depth + 1, i)
   }
   return obj
 }
@@ -84,28 +130,21 @@ function synthArray(schema, propName, dir, depth) {
   n = Math.min(n, 3)
   if ((schema.maxItems ?? -1) >= 0) n = Math.min(n, schema.maxItems)
   if (n < 0 || !schema.items) return []
-  return Array.from({ length: n }, () => synth(schema.items, propName, dir, depth + 1))
+  return Array.from({ length: n }, (_, k) => synth(schema.items, propName, dir, depth + 1, k))
 }
 
-function leaf(schema, propName) {
-  const nm = String(propName ?? '').toLowerCase()
+function leaf(schema, propName, i = 0) {
   switch (schema.type) {
     case 'string':
-      return NAMES[nm] ?? 'meldr'
-    case 'integer': {
-      const lo = schema.minimum ?? 1
-      const hi = schema.maximum
-      return Math.trunc(hi !== null && lo > hi ? hi : lo)
-    }
-    case 'number': {
-      const lo = schema.minimum ?? 1.25
-      const hi = schema.maximum
-      return hi !== null && lo > hi ? hi : lo
-    }
+      return stringFor(NAMES, propName, i)
+    case 'integer':
+      return Math.trunc(numFor(schema, propName, i, 1))
+    case 'number':
+      return numFor(schema, propName, i, 1.25)
     case 'boolean':
       return true
     default:
-      return NAMES[nm] ?? null
+      return NAMES[String(propName ?? '').toLowerCase()] ?? null
   }
 }
 
