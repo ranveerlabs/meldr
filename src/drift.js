@@ -88,6 +88,7 @@ export async function probeDrift(spec, doc, opts = {}) {
   const timeoutMs = opts.timeoutMs ?? 10000
   const findings = []
   const unreachable = []
+  const covered = []
 
   for (const op of spec.operations) {
     const req = buildRequest(spec, op, base, prefix)
@@ -105,12 +106,12 @@ export async function probeDrift(spec, doc, opts = {}) {
     } catch {
       body = undefined
     }
-    findings.push(...compareOperation(doc, op, req.label, res.status, body))
+    findings.push(...compareOperation(doc, op, req.label, res.status, body, covered))
   }
-  return { findings: dedupe(findings), unreachable, source: `live ${base}` }
+  return { findings: dedupe(findings), unreachable, covered, source: `live ${base}` }
 }
 
-function compareOperation(doc, op, label, status, body) {
+function compareOperation(doc, op, label, status, body, covered = []) {
   const out = []
   const opCursor = step(doc, { node: doc, path: [] }, 'paths', op.path, op.method)
   if (!opCursor) return out
@@ -149,7 +150,12 @@ function compareOperation(doc, op, label, status, body) {
     return out
   }
 
-  if (!exact) return out // matched a range or default, nothing precise to patch
+  if (!exact) {
+    // a 500 that lands on a default response is the implementation falling over,
+    // never something to write into the contract
+    if (status >= 400) covered.push({ op: label, status })
+    return out
+  }
   if (body === undefined) return out
 
   const schemaCursor = step(doc, opCursor, 'responses', String(status), 'content', 'application/json', 'schema')
@@ -312,7 +318,7 @@ export function upstreamDrift(spec, upstream) {
     )
   }
 
-  return { findings, unreachable: [], source: `upstream ${upstream.title} v${upstream.version}` }
+  return { findings, unreachable: [], covered: [], source: `upstream ${upstream.title} v${upstream.version}` }
 }
 
 // structural fingerprint of a response, enough to notice a real shape change

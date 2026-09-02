@@ -278,3 +278,37 @@ test('inferSchema reads the json it was given', () => {
   assert.deepEqual(inferSchema([]), { type: 'array', items: {} })
   assert.deepEqual(inferSchema({ a: null }), { type: 'object', properties: { a: { type: 'string', nullable: true } } })
 })
+
+test('a server erroring under a default response is not drift, but it is not silence either', async () => {
+  const raw = `openapi: 3.0.3
+info: {title: t, version: "1"}
+servers: [{url: /}]
+paths:
+  /thing:
+    get:
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object, properties: {a: {type: string}}}
+        default:
+          description: boom
+          content:
+            application/json:
+              schema: {type: object, properties: {code: {type: string}}}
+`
+  const spec = parseSpec(raw)
+  const doc = yaml.load(raw)
+  const { url, close } = await serve((req, res) => json(res, 500, { code: 'boom' }))
+  try {
+    const report = await probeDrift(spec, doc, { base: url })
+    // never bless a 500 into the contract
+    assert.deepEqual(report.findings, [])
+    // but do not claim the contract matches either
+    assert.equal(report.covered.length, 1)
+    assert.equal(report.covered[0].status, 500)
+  } finally {
+    await close()
+  }
+})

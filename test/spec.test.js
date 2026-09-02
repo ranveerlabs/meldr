@@ -109,3 +109,12 @@ test('handles cyclic schemas without hanging', () => {
   const spec = parseSpec(cyc)
   assert.equal(spec.warnings.length, 0)
 })
+
+test('a bad contract url is the users problem, not a meldr crash', async () => {
+  const { fetchContract } = await import('../src/spec.js')
+  await assert.rejects(() => fetchContract('https://raw.githubusercontent.com/ranveerlabs/meldr/main/nope-does-not-exist.yaml'), (e) => {
+    assert.equal(e.name, 'CliError')
+    assert.match(e.message, /HTTP 404/)
+    return true
+  })
+})

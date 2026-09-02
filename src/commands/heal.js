@@ -46,9 +46,19 @@ export async function cmdHeal(flags, args) {
   console.log('')
 
   const s = summarizeDrift(report.findings)
+  const covered = report.covered ?? []
   if (!report.findings.length) {
     for (const u of report.unreachable) console.log(`  ${c.yellow('unreachable')} ${c.dim(u)}`)
-    console.log(c.green('no drift · contract already matches'))
+    if (covered.length) {
+      // saying "already matches" here would be a lie, a 500 on every route is
+      // not a healthy contract, its just nothing heal is allowed to touch
+      console.log(c.yellow(`nothing to patch · ${covered.length} operation(s) answered an error a default response already covers`))
+      for (const x of covered.slice(0, 5)) console.log(c.dim(`  ${x.op} -> ${x.status}`))
+      if (covered.length > 5) console.log(c.dim(`  and ${covered.length - 5} more`))
+      console.log(c.dim('  thats the implementation failing, not the contract drifting. meldr verify shows it'))
+    } else {
+      console.log(c.green('no drift · contract already matches'))
+    }
     if (flags.report) await writeReport(flags.report, abs, report, [], s)
     return 0
   }
@@ -114,6 +124,7 @@ async function writeReport(file, contract, report, applied, summary) {
     summary,
     applied: applied.length,
     unreachable: report.unreachable,
+    covered: report.covered ?? [],
     findings: report.findings.map((f) => ({ kind: f.kind, op: f.op, at: f.at, detail: f.detail, safety: f.safety, patchable: Boolean(f.patch) })),
   }
   await writeFile(path.resolve(file), JSON.stringify(out, null, 2) + '\n')

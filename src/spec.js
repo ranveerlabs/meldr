@@ -1,4 +1,5 @@
 import yaml from 'js-yaml'
+import { CliError } from './ui.js'
 
 const HTTP_METHODS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']
 
@@ -13,9 +14,9 @@ export async function fetchContract(src) {
     try {
       res = await fetch(src, { headers: { 'user-agent': 'meldr/0.1' }, redirect: 'follow' })
     } catch (e) {
-      throw new Error(`could not fetch ${src}: ${e.cause ? e.cause.message : e.message}`)
+      throw new CliError(`could not fetch ${src}: ${e.cause ? e.cause.message : e.message}`, 'check the url, or pass a local file instead')
     }
-    if (!res.ok) throw new Error(`could not fetch ${src}: HTTP ${res.status}`)
+    if (!res.ok) throw new CliError(`could not fetch ${src}: HTTP ${res.status}`, 'check the url, or pass a local file instead')
     raw = await res.text()
   } else {
     const { readFile } = await import('node:fs/promises')
