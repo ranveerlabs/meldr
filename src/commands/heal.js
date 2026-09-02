@@ -1,6 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import yaml from 'js-yaml'
 import YAML from 'yaml'
 import { loadConfig, contractPath, servePort, headersFor, paramsFor } from '../config.js'
 import { fetchContract, parseSpec } from '../spec.js'
@@ -24,7 +23,7 @@ export async function cmdHeal(flags, args) {
   }
 
   const spec = parseSpec(raw)
-  const doc = yaml.load(raw) // pristine, $refs intact. patches land here
+  const doc = YAML.parse(raw) // pristine, $refs intact. patches land here
 
   const upstream = flags.upstream ?? args[0]
   let report

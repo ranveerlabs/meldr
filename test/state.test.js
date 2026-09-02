@@ -132,3 +132,88 @@ test('auth is off unless you ask', async () => {
     await close()
   }
 })
+
+// POST /users/{id}/playlists then GET /playlists/{id} is the shape most real
+// apis use, and keying the store on the whole path lost the write
+const NESTED = `openapi: 3.0.3
+info: {title: nested, version: "1"}
+servers: [{url: /}]
+paths:
+  /me:
+    get:
+      operationId: me
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object, properties: {id: {type: string}}}
+  /me/player/play:
+    put:
+      operationId: play
+      responses:
+        '204': {description: playing}
+  /users/{user_id}/playlists:
+    post:
+      operationId: createPlaylist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, properties: {id: {type: string}, name: {type: string}}}
+      responses:
+        '201':
+          description: made
+          content:
+            application/json:
+              schema: {type: object, properties: {id: {type: string}, name: {type: string}}}
+  /playlists:
+    get:
+      operationId: listPlaylists
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {type: object, properties: {id: {type: string}, name: {type: string}}}
+  /playlists/{playlist_id}:
+    get:
+      operationId: getPlaylist
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object, properties: {id: {type: string}, name: {type: string}}}
+`
+
+test('a write under a parent path is readable at the top level', async () => {
+  const spec = specFromYaml(NESTED)
+  const { url, close } = await up(spec, { state: createStore() })
+  try {
+    const made = await fetch(`${url}/users/me/playlists`, {
+      method: 'POST',
+      headers: json,
+      body: JSON.stringify({ id: 'pl1', name: 'My Mix' }),
+    })
+    assert.equal(made.status, 201)
+    const back = await (await fetch(`${url}/playlists/pl1`)).json()
+    assert.equal(back.name, 'My Mix', 'the create went into a different bucket than the read')
+  } finally {
+    await close()
+  }
+})
+
+test('a singleton stays an object and an rpc call invents nothing', async () => {
+  const spec = specFromYaml(NESTED)
+  const { url, close } = await up(spec, { state: createStore() })
+  try {
+    const me = await (await fetch(`${url}/me`)).json()
+    assert.ok(!Array.isArray(me), '/me is not a collection just because it has no id')
+    assert.equal((await fetch(`${url}/me/player/play`, { method: 'PUT' })).status, 204)
+  } finally {
+    await close()
+  }
+})

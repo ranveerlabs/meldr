@@ -1,6 +1,6 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
-import yaml from 'js-yaml'
+import YAML from 'yaml'
 import { resolveSession } from '../session.js'
 import { CliError, c } from '../ui.js'
 
@@ -29,7 +29,7 @@ export async function cmdDraft(flags, args) {
   const doc = toOpenApi(parsed)
   const out = path.resolve(flags.out ?? 'contracts/api.yaml')
   await mkdir(path.dirname(out), { recursive: true })
-  await writeFile(out, yaml.dump(doc))
+  await writeFile(out, YAML.stringify(doc))
 
   const ops = doc.paths ? Object.keys(doc.paths).length : 0
   console.log(`${c.green('✓')} drafted ${c.bold(doc.info.title)}, ${ops} path(s) -> ${path.relative(process.cwd(), out) || out}`)

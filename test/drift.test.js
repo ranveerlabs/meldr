@@ -3,14 +3,14 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import http from 'node:http'
-import yaml from 'js-yaml'
+import YAML from 'yaml'
 import { parseSpec } from '../src/spec.js'
 import { probeDrift, upstreamDrift, applyFindings, inferSchema, getAt, summarizeDrift } from '../src/drift.js'
 import { runVerify, summarize } from '../src/verify.js'
 
 async function petstore() {
   const raw = await readFile(path.resolve('testdata', 'petstore.yaml'), 'utf8')
-  return { raw, spec: parseSpec(raw), doc: yaml.load(raw) }
+  return { raw, spec: parseSpec(raw), doc: YAML.parse(raw) }
 }
 
 async function serve(handler) {
@@ -122,7 +122,7 @@ test('healing a drifted contract makes verify green', async () => {
   try {
     const report = await probeDrift(spec, doc, { base: url })
     applyFindings(doc, report.findings.filter((f) => f.patch))
-    const healed = parseSpec(yaml.dump(doc, { noRefs: true }))
+    const healed = parseSpec(YAML.stringify(doc, { noRefs: true }))
     const rows = await runVerify(healed, { base: url })
     const s = summarize(rows)
     assert.equal(s.failed, 0, rows.filter((r) => !r.pass && !r.skipped).map((r) => `${r.op}: ${r.detail}`).join(' | '))
@@ -146,7 +146,7 @@ paths:
               schema: {type: object, properties: {a: {type: string}}}
 `
   const spec = parseSpec(raw)
-  const doc = yaml.load(raw)
+  const doc = YAML.parse(raw)
   const { url, close } = await serve((req, res) => json(res, 418, { reason: 'teapot', retryIn: 5 }))
   try {
     const report = await probeDrift(spec, doc, { base: url })
@@ -183,7 +183,7 @@ paths:
                 properties: {a: {type: string}, b: {type: string}}
 `
   const spec = parseSpec(raw)
-  const doc = yaml.load(raw)
+  const doc = YAML.parse(raw)
   const { url, close } = await serve((req, res) => json(res, 200, { a: 'still here' }))
   try {
     const report = await probeDrift(spec, doc, { base: url })
@@ -215,7 +215,7 @@ paths:
                   - {type: object, properties: {b: {type: integer}}}
 `
   const spec = parseSpec(raw)
-  const doc = yaml.load(raw)
+  const doc = YAML.parse(raw)
   const { url, close } = await serve((req, res) => json(res, 200, { z: true }))
   try {
     const report = await probeDrift(spec, doc, { base: url })
@@ -299,7 +299,7 @@ paths:
               schema: {type: object, properties: {code: {type: string}}}
 `
   const spec = parseSpec(raw)
-  const doc = yaml.load(raw)
+  const doc = YAML.parse(raw)
   const { url, close } = await serve((req, res) => json(res, 500, { code: 'boom' }))
   try {
     const report = await probeDrift(spec, doc, { base: url })
@@ -320,12 +320,12 @@ test('patching yaml and patching the plain object land in the same place', async
   const YAML = (await import('yaml')).default
   const raw = await readFile(path.resolve('testdata', 'petstore.yaml'), 'utf8')
   const spec = parseSpec(raw)
-  const plain = yaml.load(raw)
+  const plain = YAML.parse(raw)
   const ydoc = YAML.parseDocument(raw)
 
   const { url, close } = await serve(driftedPetstore())
   try {
-    const report = await probeDrift(spec, yaml.load(raw), { base: url })
+    const report = await probeDrift(spec, YAML.parse(raw), { base: url })
     const patchable = report.findings.filter((f) => f.patch)
     assert.ok(patchable.length >= 3)
     applyFindings(plain, patchable)
@@ -355,7 +355,7 @@ paths:
               schema: {type: object, properties: {a: {type: integer}}}
 `
   const spec = parseSpec(raw)
-  const doc = yaml.load(raw)
+  const doc = YAML.parse(raw)
   const ydoc = YAML.parseDocument(raw)
   const { url, close } = await serve((req, res) => json(res, 200, { a: 'now a string' }))
   try {

@@ -1,4 +1,4 @@
-import yaml from 'js-yaml'
+import YAML from 'yaml'
 import { CliError } from './ui.js'
 
 const HTTP_METHODS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']
@@ -28,7 +28,7 @@ export async function fetchContract(src) {
 export function parseSpec(text) {
   let doc
   try {
-    doc = yaml.load(text)
+    doc = YAML.parse(text)
   } catch (e) {
     throw new Error(`contract is not valid YAML/JSON: ${e.message.split('\n')[0]}`)
   }

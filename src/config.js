@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import yaml from 'js-yaml'
+import YAML from 'yaml'
 import { CliError } from './ui.js'
 
 export const CONFIG_NAME = 'meldr.yaml'
@@ -24,7 +24,7 @@ export async function loadConfig(explicit, cwd = process.cwd()) {
 
 function readConfigFile(file) {
   try {
-    const parsed = yaml.load(readFileSync(file, 'utf8'))
+    const parsed = YAML.parse(readFileSync(file, 'utf8'))
     if (parsed === null || parsed === undefined) return {}
     if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('must be a mapping')
     return parsed
