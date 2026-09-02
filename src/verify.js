@@ -1,4 +1,5 @@
 import { pickSuccess } from './spec.js'
+import { pinned } from './config.js'
 import { paramValue, requestBodyValue, preferJson } from './mock.js'
 import { c, pad } from './ui.js'
 
@@ -7,16 +8,20 @@ export function joinPath(a, b) {
   return a.replace(/\/+$/, '') + b
 }
 
-// builds the one request meldr sends per operation. verify and drift both go through here
-// so a probe and a check hit byte-identical urls
-export function buildRequest(spec, op, base, prefix) {
+// verify and drift both come through here so a probe and a check hit the same url
+export function buildRequest(spec, op, base, prefix, opts = {}) {
+  const over = opts.params ?? { default: {} }
+  const val = (p) => pinned(over, op, p.name) ?? paramValue(p)
+
   let full = joinPath(prefix, op.path).replace(/\{([^}]+)\}/g, (_, name) => {
     const p = op.params.find((x) => x.in === 'path' && x.name === name)
-    return p ? encodeURIComponent(paramValue(p)) : `{${name}}`
+    if (p) return encodeURIComponent(val(p))
+    const fixed = pinned(over, op, name)
+    return fixed === undefined ? `{${name}}` : encodeURIComponent(fixed)
   })
   const qs = new URLSearchParams()
   for (const p of op.params) {
-    if (p.in === 'query' && p.required) qs.set(p.name, paramValue(p))
+    if (p.in === 'query' && (p.required || pinned(over, op, p.name) !== undefined)) qs.set(p.name, val(p))
   }
   const q = qs.toString()
   if (q) full += `?${q}`
@@ -26,8 +31,10 @@ export function buildRequest(spec, op, base, prefix) {
     'user-agent': `meldr-verify/${spec.version}`,
   }
   for (const p of op.params) {
-    if (p.in === 'header' && p.required) headers[p.name.toLowerCase()] = paramValue(p)
+    if (p.in === 'header' && p.required) headers[p.name.toLowerCase()] = val(p)
   }
+  // yours win, a contract should never be able to overwrite your auth
+  for (const [k, v] of Object.entries(opts.headers ?? {})) headers[k] = v
 
   let body
   if (op.body) {
@@ -41,6 +48,31 @@ export function buildRequest(spec, op, base, prefix) {
   return { label: `${op.method.toUpperCase()} ${joinPath(prefix, op.path)}`, url: base + full, method: op.method.toUpperCase(), headers, body }
 }
 
+// one at a time is slow across 90 ops, all at once trips rate limits
+export async function pool(items, n, fn) {
+  const out = new Array(items.length)
+  let next = 0
+  const run = async () => {
+    while (next < items.length) {
+      const i = next++
+      out[i] = await fn(items[i])
+    }
+  }
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(n, items.length)) }, run))
+  return out
+}
+
+// 429 means slow down, not drift
+export async function send(url, init, timeoutMs, tries = 3) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) })
+    if (res.status !== 429 || attempt >= tries - 1) return res
+    const after = Number(res.headers.get('retry-after'))
+    const wait = Number.isFinite(after) && after > 0 ? after * 1000 : 500 * 2 ** attempt
+    await new Promise((r) => setTimeout(r, Math.min(wait, 10000)))
+  }
+}
+
 export async function runVerify(spec, opts = {}) {
   const base = String(opts.base ?? 'http://localhost:3000').replace(/\/+$/, '')
   let parsedBase
@@ -51,15 +83,13 @@ export async function runVerify(spec, opts = {}) {
   }
   if (!/^https?:$/.test(parsedBase.protocol)) throw new Error(`--base must be http(s): ${base}`)
   const prefix = opts.prefix !== undefined ? opts.prefix : (spec.servers[0] ?? '/')
-  const rows = []
-  for (const op of spec.operations) {
-    rows.push(await verifyOperation(spec, op, base, prefix, opts.timeoutMs ?? 10000))
-  }
-  return rows
+  return pool(spec.operations, opts.concurrency ?? 4, (op) =>
+    verifyOperation(spec, op, base, prefix, opts.timeoutMs ?? 10000, opts),
+  )
 }
 
-async function verifyOperation(spec, op, base, prefix, timeoutMs) {
-  const { label, url, method, headers, body } = buildRequest(spec, op, base, prefix)
+async function verifyOperation(spec, op, base, prefix, timeoutMs, opts) {
+  const { label, url, method, headers, body } = buildRequest(spec, op, base, prefix, opts)
   const expected = pickSuccess(op)
   const successShaped =
     expected &&
@@ -72,7 +102,7 @@ async function verifyOperation(spec, op, base, prefix, timeoutMs) {
 
   let res
   try {
-    res = await fetch(url, { method, headers, body, signal: AbortSignal.timeout(timeoutMs) })
+    res = await send(url, { method, headers, body }, timeoutMs)
   } catch (e) {
     return { op: label, status: null, expected: expected.key, pass: false, warns: [], issues: [], skipped: null, detail: `request failed: ${e.message}` }
   }

@@ -1,9 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import yaml from 'js-yaml'
-import { loadConfig, contractPath, servePort } from '../config.js'
+import YAML from 'yaml'
+import { loadConfig, contractPath, servePort, headersFor, paramsFor } from '../config.js'
 import { fetchContract, parseSpec } from '../spec.js'
-import { probeDrift, upstreamDrift, applyFindings, summarizeDrift } from '../drift.js'
+import { probeDrift, upstreamDrift, applyFindings, applyToYaml, summarizeDrift } from '../drift.js'
 import { resolveSession } from '../session.js'
 import { CliError, c, pad } from '../ui.js'
 
@@ -32,10 +33,14 @@ export async function cmdHeal(flags, args) {
     report = upstreamDrift(spec, up.spec)
   } else {
     const base = flags.base ?? `http://localhost:${servePort(config)}`
+    if (flags.insecure) process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
     report = await probeDrift(spec, doc, {
       base,
       prefix: flags.prefix,
       timeoutMs: (flags.timeout ?? 10) * 1000,
+      concurrency: flags.concurrency ?? config.concurrency ?? 4,
+      headers: headersFor(config, flags.header),
+      params: paramsFor(config, flags.param),
     })
     if (report.unreachable.length === spec.operations.length && spec.operations.length) {
       throw new CliError(`nothing answering at ${base}`, 'start the implementation first, or diff a contract with --upstream <file-or-url>')
@@ -74,7 +79,8 @@ export async function cmdHeal(flags, args) {
   }
 
   const chosen = report.findings.filter((f) => f.patch && (f.safety === 'safe' || flags.all))
-  const { applied, skipped } = applyFindings(doc, chosen)
+  const ydoc = YAML.parseDocument(raw)
+  const { applied, skipped } = applyToYaml(ydoc, chosen)
 
   if (flags.ai) {
     await aiPass(doc, raw, report, flags)
@@ -87,13 +93,20 @@ export async function cmdHeal(flags, args) {
     return 1
   }
 
-  doc.info = doc.info ?? {}
-  doc.info['x-meldr'] = {
-    healedAt: new Date().toISOString(),
-    source: report.source,
-    applied: applied.length,
+  ydoc.setIn(
+    ['info', 'x-meldr'],
+    ydoc.createNode({ healedAt: new Date().toISOString(), source: report.source, applied: applied.length }),
+  )
+  // match the file or every flow collection and $ref reflows and buries the real changes
+    const singleQuote = (raw.match(/: '/g) ?? []).length >= (raw.match(/: "/g) ?? []).length
+  const next = ydoc.toString({ lineWidth: 0, flowCollectionPadding: false, singleQuote })
+
+  if (flags.diff) {
+    printDiff(raw, next)
+    console.log(c.dim(`  ${applied.length} fix(es), nothing written. drop --diff to apply`))
+    return 0
   }
-  await writeFile(abs, yaml.dump(doc, { lineWidth: 100, noRefs: true }))
+  await writeFile(abs, next)
 
   console.log(`${c.green('✓')} healed ${c.bold(path.relative(process.cwd(), abs) || abs)}, ${applied.length} fix(es) applied`)
   if (skipped.length) console.log(c.dim(`  ${skipped.length} patch(es) would not apply cleanly`))
@@ -106,6 +119,32 @@ export async function cmdHeal(flags, args) {
   }
   if (flags.report) await writeReport(flags.report, abs, report, applied, s)
   return 0
+}
+
+function printDiff(before, after) {
+  const a = before.split(/\r?\n/)
+  const b = after.split(/\r?\n/)
+  const lcs = Array.from({ length: a.length + 1 }, () => new Uint32Array(b.length + 1))
+  for (let i = a.length - 1; i >= 0; i--) {
+    for (let j = b.length - 1; j >= 0; j--) {
+      lcs[i][j] = a[i] === b[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1])
+    }
+  }
+  console.log('')
+  let i = 0
+  let j = 0
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      i++
+      j++
+    } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
+      console.log(c.red(`- ${a[i++]}`))
+    } else {
+      console.log(c.green(`+ ${b[j++]}`))
+    }
+  }
+  while (i < a.length) console.log(c.red(`- ${a[i++]}`))
+  while (j < b.length) console.log(c.green(`+ ${b[j++]}`))
 }
 
 function printFindings(findings) {
@@ -131,7 +170,7 @@ async function writeReport(file, contract, report, applied, summary) {
   console.log(c.dim(`  drift report -> ${file}`))
 }
 
-// last resort for the findings no rule can patch. mutates doc in place
+// mutates doc in place
 async function aiPass(doc, raw, report, flags) {
   const manual = report.findings.filter((f) => !f.patch)
   if (!manual.length) return

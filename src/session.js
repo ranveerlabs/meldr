@@ -28,24 +28,37 @@ const PROVIDERS = {
   },
 }
 
+// anything not named here is openai shaped, covers openrouter groq together
+// deepseek ollama and most local servers
+function describe(provider) {
+  if (PROVIDERS[provider]) return PROVIDERS[provider]
+  const up = provider.toUpperCase().replace(/[^A-Z0-9]/g, '_')
+  return {
+    ...PROVIDERS.openai,
+    envKeys: [`MELDR_${up}_KEY`, `${up}_API_KEY`, 'MELDR_AI_KEY'],
+    defaultBase: null,
+  }
+}
+
 export function resolveSession({ provider = 'openai', baseUrl } = {}) {
-  const spec = PROVIDERS[provider]
-  if (!spec) throw new CliError(`unknown provider "${provider}"`, 'supported providers: openai, anthropic')
+  const spec = describe(provider)
   let key = null
-  let usedEnv = null
   for (const envName of spec.envKeys) {
     const v = process.env[envName]
     if (v && v.trim()) {
       key = v.trim()
-      usedEnv = envName
       break
     }
   }
   if (!key) throw new CliError(`no API key found for provider "${provider}"`, `meldr is BYOK and session-only: set ${spec.envKeys.join(' or ')} in your environment, it is never written to disk`)
-  return makeSession(provider, key, baseUrl || process.env.MELDR_AI_BASE_URL || spec.defaultBase)
+
+  const base = baseUrl || process.env.MELDR_AI_BASE_URL || spec.defaultBase
+  if (!base) throw new CliError(`no base url for provider "${provider}"`, 'pass --base-url or set MELDR_AI_BASE_URL, meldr only knows openai and anthropic by name')
+  return makeSession(provider, key, base)
 }
 
 function makeSession(provider, key, baseUrl) {
+  const spec = describe(provider)
   return {
     provider,
     baseUrl: String(baseUrl).replace(/\/+$/, ''),
@@ -56,7 +69,6 @@ function makeSession(provider, key, baseUrl) {
       return out.replace(/(sk|pk)[-_a-zA-Z0-9]{12,}/g, '[redacted]')
     },
     async chat({ system, user, model, fetchImpl = fetch }) {
-      const spec = PROVIDERS[provider]
       const path = provider === 'anthropic' ? '/v1/messages' : '/chat/completions'
       let res
       try {

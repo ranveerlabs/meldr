@@ -119,3 +119,52 @@ test('unreachable servers produce failing rows, not crashes', async () => {
   const s = summarize(rows)
   assert.equal(s.failed, 4)
 })
+
+test('your headers and pinned params reach the server', async () => {
+  const spec = await petstoreSpec()
+  const seen = []
+  const server = http.createServer((req, res) => {
+    seen.push({ url: req.url, auth: req.headers.authorization })
+    res.writeHead(200, { 'content-type': 'application/json' })
+    res.end('[]')
+  })
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  try {
+    await runVerify(spec, {
+      base: `http://127.0.0.1:${server.address().port}`,
+      headers: { authorization: 'Bearer tok_123' },
+      params: { default: { id: '11dFghVXANMlKmJXsNCbNl' } },
+      concurrency: 1,
+    })
+    assert.ok(seen.length >= 4)
+    for (const r of seen) assert.equal(r.auth, 'Bearer tok_123')
+    assert.ok(
+      seen.some((r) => r.url.includes('11dFghVXANMlKmJXsNCbNl')),
+      `a pinned id should show up in a url, got ${seen.map((r) => r.url).join(' ')}`,
+    )
+  } finally {
+    await new Promise((resolve) => server.close(resolve))
+  }
+})
+
+test('a 429 is backed off, not reported as drift', async () => {
+  const spec = await petstoreSpec()
+  let hits = 0
+  const server = http.createServer((req, res) => {
+    hits++
+    if (hits === 1) {
+      res.writeHead(429, { 'retry-after': '0' })
+      return res.end('slow down')
+    }
+    res.writeHead(200, { 'content-type': 'application/json' })
+    res.end('[]')
+  })
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  try {
+    const rows = await runVerify(spec, { base: `http://127.0.0.1:${server.address().port}`, concurrency: 1 })
+    assert.ok(hits > 4, 'the 429 should have been retried, not counted as an answer')
+    assert.ok(rows.length === 4)
+  } finally {
+    await new Promise((resolve) => server.close(resolve))
+  }
+})

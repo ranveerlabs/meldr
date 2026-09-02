@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import yaml from 'js-yaml'
+import { CliError } from './ui.js'
 
 export const CONFIG_NAME = 'meldr.yaml'
 
@@ -69,3 +70,45 @@ paths:
               example:
                 status: ok
 `
+
+// ${TOKEN} gets pulled from the env at run time so meldr.yaml stays commitable
+function expand(v) {
+  return String(v).replace(/\$\{(\w+)\}/g, (_, n) => {
+    const got = process.env[n]
+    if (!got) throw new CliError(`${n} is not set`, 'meldr.yaml wants it in your environment')
+    return got
+  })
+}
+
+export function headersFor(config, flagged = []) {
+  const out = {}
+  for (const [k, v] of Object.entries(config.headers ?? {})) out[k.toLowerCase()] = expand(v)
+  for (const h of flagged) {
+    const i = h.indexOf(':')
+    if (i === -1) throw new CliError(`--header wants "Name: value", got "${h}"`)
+    out[h.slice(0, i).trim().toLowerCase()] = expand(h.slice(i + 1).trim())
+  }
+  return out
+}
+
+// by operationId, or default for any param of that name
+export function paramsFor(config, flagged = []) {
+  const out = { default: {} }
+  for (const [k, v] of Object.entries(config.params ?? {})) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) out[k] = { ...v }
+  }
+  for (const p of flagged) {
+    const i = p.indexOf('=')
+    if (i === -1) throw new CliError(`--param wants name=value, got "${p}"`)
+    out.default[p.slice(0, i).trim()] = p.slice(i + 1)
+  }
+  return out
+}
+
+export function pinned(overrides, op, name) {
+  const byId = overrides[op.id]
+  if (byId && byId[name] !== undefined) return String(byId[name])
+  const d = overrides.default
+  if (d && d[name] !== undefined) return String(d[name])
+  return undefined
+}

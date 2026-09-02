@@ -36,8 +36,8 @@ const COMMANDS = {
   },
   verify: {
     summary: 'verify a running implementation against the contract',
-    usage: 'meldr verify [--heal] [--all] [--base url] [--prefix p] [--timeout s] [--insecure] [--contract path]',
-    flags: { heal: 'bool', all: 'bool', base: 'string', prefix: 'string', timeout: 'int', insecure: 'bool', contract: 'string', config: 'string' },
+    usage: 'meldr verify [--heal] [--all] [--header "K: V"] [--param name=value] [--base url] [--concurrency N] [--timeout s] [--insecure]',
+    flags: { heal: 'bool', all: 'bool', header: 'list', param: 'list', base: 'string', prefix: 'string', timeout: 'int', concurrency: 'int', insecure: 'bool', contract: 'string', config: 'string' },
     run: cmdVerify,
   },
   draft: {
@@ -48,9 +48,14 @@ const COMMANDS = {
   },
   heal: {
     summary: 'self-maintain: pull the contract back onto the live api',
-    usage: 'meldr heal [--check] [--base url] [--upstream file-or-url] [--all] [--ai] [--report f.json]',
+    usage: 'meldr heal [--check] [--diff] [--base url] [--upstream file-or-url] [--all] [--header "K: V"] [--param n=v]',
     flags: {
       check: 'bool',
+      diff: 'bool',
+      header: 'list',
+      param: 'list',
+      concurrency: 'int',
+      insecure: 'bool',
       all: 'bool',
       ai: 'bool',
       base: 'string',
@@ -105,6 +110,11 @@ export function parseFlags(argv, specs = {}) {
     if (val === undefined) {
       val = argv[++i]
       if (val === undefined) throw new CliError(`option "--${name}" requires a value`)
+    }
+    if (kind === 'list') {
+      flags[name] = flags[name] ?? []
+      flags[name].push(val)
+      continue
     }
     if (kind === 'int') {
       const n = Number.parseInt(val, 10)

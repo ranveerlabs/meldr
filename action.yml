@@ -23,6 +23,18 @@ inputs:
     description: write the machine readable drift report here
     required: false
     default: ''
+  headers:
+    description: 'one "Name: value" per line, for auth. put the token in a secret'
+    required: false
+    default: ''
+  params:
+    description: one name=value per line, real ids so the probe does not 404
+    required: false
+    default: ''
+  concurrency:
+    description: how many operations to probe at once
+    required: false
+    default: ''
   working-directory:
     description: directory holding meldr.yaml
     required: false
@@ -57,6 +69,13 @@ runs:
         # test is a failed step
         args=(heal --check --no-color)
         if [ -n "${{ inputs.base }}" ]; then args+=(--base "${{ inputs.base }}"); fi
+        if [ -n "${{ inputs.concurrency }}" ]; then args+=(--concurrency "${{ inputs.concurrency }}"); fi
+        while IFS= read -r line; do
+          if [ -n "$line" ]; then args+=(--header "$line"); fi
+        done <<< "${{ inputs.headers }}"
+        while IFS= read -r line; do
+          if [ -n "$line" ]; then args+=(--param "$line"); fi
+        done <<< "${{ inputs.params }}"
         if [ -n "${{ inputs.contract }}" ]; then args+=(--contract "${{ inputs.contract }}"); fi
         if [ -n "${{ inputs.upstream }}" ]; then args+=(--upstream "${{ inputs.upstream }}"); fi
         if [ -n "${{ inputs.report }}" ]; then args+=(--report "${{ inputs.report }}"); fi

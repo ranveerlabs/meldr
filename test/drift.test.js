@@ -312,3 +312,60 @@ paths:
     await close()
   }
 })
+
+// two apply paths, one for the plain doc the findings were computed against and
+// one for the yaml Document that keeps comments. they have to agree
+test('patching yaml and patching the plain object land in the same place', async () => {
+  const { applyToYaml } = await import('../src/drift.js')
+  const YAML = (await import('yaml')).default
+  const raw = await readFile(path.resolve('testdata', 'petstore.yaml'), 'utf8')
+  const spec = parseSpec(raw)
+  const plain = yaml.load(raw)
+  const ydoc = YAML.parseDocument(raw)
+
+  const { url, close } = await serve(driftedPetstore())
+  try {
+    const report = await probeDrift(spec, yaml.load(raw), { base: url })
+    const patchable = report.findings.filter((f) => f.patch)
+    assert.ok(patchable.length >= 3)
+    applyFindings(plain, patchable)
+    applyToYaml(ydoc, patchable)
+    assert.deepEqual(ydoc.toJSON(), plain)
+  } finally {
+    await close()
+  }
+})
+
+test('healing keeps the comments you wrote', async () => {
+  const { applyToYaml } = await import('../src/drift.js')
+  const YAML = (await import('yaml')).default
+  const raw = `# the whole contract matters
+openapi: 3.0.3
+info: {title: t, version: "1"}
+servers: [{url: /}]
+paths:
+  /thing:
+    get:
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              # this schema is load bearing
+              schema: {type: object, properties: {a: {type: integer}}}
+`
+  const spec = parseSpec(raw)
+  const doc = yaml.load(raw)
+  const ydoc = YAML.parseDocument(raw)
+  const { url, close } = await serve((req, res) => json(res, 200, { a: 'now a string' }))
+  try {
+    const report = await probeDrift(spec, doc, { base: url })
+    applyToYaml(ydoc, report.findings.filter((f) => f.patch))
+    const out = ydoc.toString({ flowCollectionPadding: false })
+    assert.match(out, /# the whole contract matters/)
+    assert.match(out, /# this schema is load bearing/)
+    assert.match(out, /type: string/)
+  } finally {
+    await close()
+  }
+})

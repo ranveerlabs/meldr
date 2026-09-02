@@ -1,4 +1,4 @@
-import { loadConfig, contractPath, servePort } from '../config.js'
+import { loadConfig, contractPath, servePort, headersFor, paramsFor } from '../config.js'
 import { loadSpec } from '../spec.js'
 import { runVerify, printReport } from '../verify.js'
 import { cmdHeal } from './heal.js'
@@ -8,7 +8,14 @@ export async function cmdVerify(flags) {
   const { config } = await loadConfig(flags.config)
   const file = contractPath(config, flags.contract)
   const base = flags.base ?? `http://localhost:${servePort(config)}`
-  const opts = { base, prefix: flags.prefix, timeoutMs: (flags.timeout ?? 10) * 1000 }
+  const opts = {
+    base,
+    prefix: flags.prefix,
+    timeoutMs: (flags.timeout ?? 10) * 1000,
+    concurrency: flags.concurrency ?? config.concurrency ?? 4,
+    headers: headersFor(config, flags.header),
+    params: paramsFor(config, flags.param),
+  }
 
   if (flags.insecure) process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 

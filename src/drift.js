@@ -1,4 +1,4 @@
-import { buildRequest } from './verify.js'
+import { buildRequest, pool, send } from './verify.js'
 import { lookupResponse, pickSuccess } from './spec.js'
 
 // patches point at the raw doc, not the normalized spec, and resolve through $ref
@@ -55,7 +55,7 @@ export function getAt(doc, path) {
   return node
 }
 
-// walks $refs until the cursor sits on a real node. bails on external refs
+// bails on external refs
 function follow(doc, cursor, hops = 0) {
   if (hops > 16 || !isMap(cursor.node)) return cursor
   const ref = typeof cursor.node.$ref === 'string' ? cursor.node.$ref : null
@@ -90,14 +90,13 @@ export async function probeDrift(spec, doc, opts = {}) {
   const unreachable = []
   const covered = []
 
-  for (const op of spec.operations) {
-    const req = buildRequest(spec, op, base, prefix)
+  const seen = await pool(spec.operations, opts.concurrency ?? 4, async (op) => {
+    const req = buildRequest(spec, op, base, prefix, opts)
     let res
     try {
-      res = await fetch(req.url, { method: req.method, headers: req.headers, body: req.body, signal: AbortSignal.timeout(timeoutMs) })
+      res = await send(req.url, { method: req.method, headers: req.headers, body: req.body }, timeoutMs)
     } catch (e) {
-      unreachable.push(`${req.label}: ${e.message}`)
-      continue
+      return { op, label: req.label, err: e.message }
     }
     const text = await res.text()
     let body
@@ -106,7 +105,15 @@ export async function probeDrift(spec, doc, opts = {}) {
     } catch {
       body = undefined
     }
-    findings.push(...compareOperation(doc, op, req.label, res.status, body, covered))
+    return { op, label: req.label, status: res.status, body }
+  })
+
+  for (const r of seen) {
+    if (r.err) {
+      unreachable.push(`${r.label}: ${r.err}`)
+      continue
+    }
+    findings.push(...compareOperation(doc, r.op, r.label, r.status, r.body, covered))
   }
   return { findings: dedupe(findings), unreachable, covered, source: `live ${base}` }
 }
@@ -151,9 +158,8 @@ function compareOperation(doc, op, label, status, body, covered = []) {
   }
 
   if (!exact) {
-    // a 500 that lands on a default response is the implementation falling over,
-    // never something to write into the contract
-    if (status >= 400) covered.push({ op: label, status })
+    // a 500 landing on a default response is the impl falling over, not drift
+        if (status >= 400) covered.push({ op: label, status })
     return out
   }
   if (body === undefined) return out
@@ -264,8 +270,7 @@ function push(ctx, f) {
   ctx.count++
 }
 
-// values spliced in come from the dereferenced upstream so nothing points at
-// components the local contract has never seen
+// spliced in dereferenced, nothing should point at components we dont have
 export function upstreamDrift(spec, upstream) {
   const up = upstream.doc
   const findings = []
@@ -321,7 +326,6 @@ export function upstreamDrift(spec, upstream) {
   return { findings, unreachable: [], covered: [], source: `upstream ${upstream.title} v${upstream.version}` }
 }
 
-// structural fingerprint of a response, enough to notice a real shape change
 function signature(resp) {
   if (!resp) return null
   const media = resp.content?.['application/json']
@@ -402,4 +406,30 @@ export function summarizeDrift(findings) {
     review: findings.filter((f) => f.safety === 'review' && f.patch).length,
     manual: findings.filter((f) => !f.patch).length,
   }
+}
+
+// same patches against a yaml Document, so comments survive
+export function applyToYaml(ydoc, findings) {
+  const applied = []
+  const skipped = []
+  for (const f of findings) {
+    if (!f.patch) {
+      skipped.push(f)
+      continue
+    }
+    try {
+      if (f.patch.set) ydoc.setIn(f.patch.set, ydoc.createNode(f.patch.value))
+      else if (f.patch.pull) {
+        const arr = ydoc.getIn(f.patch.pull)
+        const left = (arr?.toJSON?.() ?? []).filter((x) => x !== f.patch.value)
+        if (left.length) ydoc.setIn(f.patch.pull, ydoc.createNode(left))
+        else ydoc.deleteIn(f.patch.pull)
+      }
+      for (const u of f.patch.unset ?? []) ydoc.deleteIn(u)
+      applied.push(f)
+    } catch {
+      skipped.push(f)
+    }
+  }
+  return { applied, skipped }
 }

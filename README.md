@@ -103,6 +103,39 @@ meldr gen
 node server.mjs
 ```
 
+pointing it at a real api
+
+synthetic ids 404 and unauthenticated calls 401, so both are worth pinning.
+meldr.yaml holds them and ${ENV} is read at run time, the file stays commitable
+
+```yaml
+headers:
+  Authorization: Bearer ${SPOTIFY_TOKEN}
+params:
+  default: {limit: 5}
+  getTrack: {id: 11dFghVXANMlKmJXsNCbNl}
+```
+
+default applies to any param of that name, the operationId key wins over it. or
+straight on the command line
+
+```
+meldr verify --header "Authorization: Bearer $TOKEN" --param id=11dFghVXANMlKmJXsNCbNl
+```
+
+your headers go on last so a contract cant overwrite your auth. a 429 gets
+retried with the Retry-After it hands you rather than counted as drift, and
+--concurrency sets how many operations go at once, 4 by default
+
+see it before it writes
+
+```
+meldr heal --diff
+```
+
+comments and quote style survive a heal, the diff is the three real changes and
+not a reflow of the whole file
+
 upstream drift
 
 same thing against someone elses contract instead of a live server
@@ -123,7 +156,10 @@ dont have to wire it yourself
 ```yaml
 - uses: ranveerlabs/meldr@main
   with:
-    base: http://localhost:3000
+    base: https://api.example.com
+    headers: Authorization: Bearer ${{ secrets.API_TOKEN }}
+    params: |
+      id=11dFghVXANMlKmJXsNCbNl
 ```
 
 or by hand if you want the pieces
@@ -157,6 +193,9 @@ cors: false
 byok & zero leaks
 
 - keys from env only (OPENAI_API_KEY, ANTHROPIC_API_KEY, MELDR_*_KEY)
+- any provider works, --provider openrouter with --base-url and a
+  MELDR_OPENROUTER_KEY or OPENROUTER_API_KEY. openai and anthropic are the only
+  two meldr knows the base url for
 - in-memory only for the single cmd session, never written to disk, never cached, never logged
 - output auto-scrubs key leaks with [redacted]
 - no telemetry, no tracking, pure local execution

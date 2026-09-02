@@ -119,3 +119,17 @@ test('draft without a key exits cleanly with guidance', async () => {
     if (saved) process.env.OPENAI_API_KEY = saved
   }
 })
+
+test('any provider name works as long as you give it a base url', async () => {
+  const { resolveSession } = await import('../src/session.js')
+  process.env.MELDR_OPENROUTER_KEY = 'sk-or-v1-abcdefghijklmnop'
+  try {
+    const s = resolveSession({ provider: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1' })
+    assert.equal(s.provider, 'openrouter')
+    assert.equal(s.baseUrl, 'https://openrouter.ai/api/v1')
+    assert.equal(s.redact('key is sk-or-v1-abcdefghijklmnop'), 'key is [redacted]')
+    assert.throws(() => resolveSession({ provider: 'openrouter' }), /no base url/)
+  } finally {
+    delete process.env.MELDR_OPENROUTER_KEY
+  }
+})
