@@ -8,117 +8,137 @@
 
 meldr, wire-compatible API replacements without the rebuild
 
-commands:
-  init     scaffold a project with a starter contract
-  pull     ingest an OpenAPI 3.x contract (file or URL)
-  serve    run a wire-compatible replacement server
-  gen      generate a standalone, dependency-free editable server
-  verify   verify a running implementation against the contract
-  draft    BYOK: draft a contract from a description via your own AI key
-  heal     self-maintain: pull the contract back onto the live api
+your openapi file is lying to you. the api shipped a field, an id went from int
+to string, a 201 quietly became a 202, and nothing told the yaml sitting in your
+repo. meldr sends one real request per operation, compares what came back
+against what the contract claims, and writes the difference back
 
-quickstart:
-  npm install -g github:ranveerlabs/meldr
-  mkdir demo && cd demo
-  meldr init
-  meldr serve &
-  curl localhost:3000/ping
-  # {"status":"ok"}
+```
+meldr verify --heal
 
-  meldr pull https://raw.githubusercontent.com/ranveerlabs/meldr/main/testdata/petstore.yaml
-  meldr serve &
-  curl localhost:3000/v1/pets/42
-  # {"id":42,"name":"Rex","tag":"friendly","status":"available"}
+verifying Meldr Petstore against http://localhost:4123
 
-  meldr verify
-  # 4 passed · 0 failed
+GET /v1/pets          FAIL 200  $[0].id: expected integer, got string; $[1].id: expected integer, got string
+POST /v1/pets         FAIL 202  expected status 201, got 202; id: expected integer, got string
+DELETE /v1/pets/{id}  PASS 204
+GET /v1/pets/{id}     FAIL 200  id: expected integer, got string
 
-  meldr gen
-  node server.mjs
+1 passed · 3 failed
 
-self-maintaining
-  contracts rot. the api ships a field, an id goes from int to string, a 201
-  quietly becomes a 202, and the yaml in your repo is now lying to everyone
-  reading it. meldr sends one real request per operation and compares what came
-  back against what the contract claims, then writes the difference back
+healing Meldr Petstore v1.0.0 against live http://localhost:4123
 
-  meldr verify --heal
+GET /v1/pets   FIX  $[0].id                  contract says integer, live sends string
+GET /v1/pets   FIX  $[0].createdAt           live sends "createdAt" (string), contract does not declare it
+POST /v1/pets  RISK responses.201 -> 202     contract's success is 201, live answers 202
 
-  verifying Meldr Petstore against http://localhost:4123
+✓ healed contracts\api.yaml, 2 fix(es) applied
+  1 held back · rerun with --all to take the risky ones too
 
-  GET /v1/pets          FAIL 200  $[0].id: expected integer, got string; $[1].id: expected integer, got string
-  POST /v1/pets         FAIL 202  expected status 201, got 202; id: expected integer, got string
-  DELETE /v1/pets/{id}  PASS 204
-  GET /v1/pets/{id}     FAIL 200  id: expected integer, got string
+re-verifying Meldr Petstore against http://localhost:4123
 
-  1 passed · 3 failed
+GET /v1/pets          PASS 200
+POST /v1/pets         FAIL 202  expected status 201, got 202
+DELETE /v1/pets/{id}  PASS 204
+GET /v1/pets/{id}     PASS 200
 
-  healing Meldr Petstore v1.0.0 against live http://localhost:4123
+3 passed · 1 failed
+  still red · `meldr verify --heal --all` takes the destructive fixes too
+```
 
-  GET /v1/pets   FIX  $[0].id                  contract says integer, live sends string
-  GET /v1/pets   FIX  $[0].createdAt           live sends "createdAt" (string), contract does not declare it
-  POST /v1/pets  RISK responses.201 -> 202     contract's success is 201, live answers 202
+FIX goes in on sight. RISK waits for --all bcuz it deletes something, thats why
+that run ends one short. the patches go in through the $ref so one fix to Pet.id
+lands in components/schemas/Pet and every operation using it moves at once, read
+the git diff after, its a normal yaml diff
 
-  ✓ healed contractspi.yaml, 2 fix(es) applied
-    1 held back · rerun with --all to take the risky ones too
+```
+fixed on sight
+  type drift        integer -> string, the stale format and example go with it
+  new fields        live sends createdAt, contract learns createdAt
+  new statuses      recorded with the shape they actually returned
 
-  re-verifying Meldr Petstore against http://localhost:4123
+waits for --all
+  moved success     201 -> 202, the old response node moves, it doesnt duplicate
+  required gone     drops a name from required[] the api stopped sending
+  dead upstream op  marked deprecated, never deleted
+```
 
-  GET /v1/pets          PASS 200
-  POST /v1/pets         FAIL 202  expected status 201, got 202
-  DELETE /v1/pets/{id}  PASS 204
-  GET /v1/pets/{id}     PASS 200
+allOf/oneOf/anyOf get reported and never auto-patched, too easy to wreck
 
-  3 passed · 1 failed
-    still red · `meldr verify --heal --all` takes the destructive fixes too
+commands
 
-  FIX goes in on sight. RISK waits for --all bcuz it deletes something, thats
-  why that run ends one short. the patches go in through the $ref so one fix to
-  Pet.id lands in components/schemas/Pet and every operation using it moves at
-  once, read the git diff after, its a normal yaml diff
+```
+init     scaffold a project with a starter contract
+pull     ingest an OpenAPI 3.x contract (file or URL)
+serve    run a wire-compatible replacement server
+gen      generate a standalone, dependency-free editable server
+verify   verify a running implementation against the contract
+draft    BYOK: draft a contract from a description via your own AI key
+heal     self-maintain: pull the contract back onto the live api
+```
 
-  fixed on sight
-    type drift        integer -> string, the stale format and example go with it
-    new fields        live sends createdAt, contract learns createdAt
-    new statuses      recorded with the shape they actually returned
+quickstart
 
-  waits for --all
-    moved success     201 -> 202, the old response node moves, it doesnt duplicate
-    required gone     drops a name from required[] the api stopped sending
-    dead upstream op  marked deprecated, never deleted
+```
+npm install -g @ranveerlabs/meldr
+mkdir demo && cd demo
+meldr init
+meldr serve &
+curl localhost:3000/ping
+# {"status":"ok"}
 
-  allOf/oneOf/anyOf get reported and never auto-patched, too easy to wreck
+meldr pull https://raw.githubusercontent.com/ranveerlabs/meldr/main/testdata/petstore.yaml
+meldr serve &
+curl localhost:3000/v1/pets/42
+# {"id":42,"name":"Rex","tag":"friendly","status":"available"}
+
+meldr verify
+# 4 passed · 0 failed
+
+meldr gen
+node server.mjs
+```
 
 upstream drift
-  same thing against someone elses contract instead of a live server
 
-  meldr heal --upstream https://api.example.com/openapi.yaml
+same thing against someone elses contract instead of a live server
 
-  new operations get spliced in dereferenced so nothing points at components you
-  dont have. operations upstream dropped get `deprecated: true` and keep their
-  bodies
+```
+meldr heal --upstream https://api.example.com/openapi.yaml
+```
+
+new operations get spliced in dereferenced so nothing points at components you
+dont have. operations upstream dropped get `deprecated: true` and keep their
+bodies
 
 ci gate
-  meldr heal --check writes nothing and exits 1 on drift
 
-  - run: meldr serve &
-  - run: meldr verify
-  - run: meldr heal --check --report drift.json
+meldr heal --check writes nothing and exits 1 on drift
 
-  drift.json is stable, kind/op/at/detail/safety/patchable per finding plus a
-  summary. wire it to whatever opens the PR
+```yaml
+- run: meldr serve &
+- run: meldr verify
+- run: meldr heal --check --report drift.json
+```
 
-  the leftovers no rule can patch go to --ai, opt-in and BYOK, and it only ever
-  replaces `paths`. info, servers and components stay yours
+drift.json is stable, kind/op/at/detail/safety/patchable per finding plus a
+summary. wire it to whatever opens the PR
 
-config:
-  meldr.yaml auto-generated on init:
-    name: demo
-    contract: contracts/api.yaml
-    port: 3000
-    cors: false
+the leftovers no rule can patch go to --ai, opt-in and BYOK, and it only ever
+replaces `paths`. info, servers and components stay yours
+
+config
+
+meldr.yaml auto-generated on init
+
+```yaml
+name: demo
+contract: contracts/api.yaml
+port: 3000
+cors: false
+```
 
 byok & zero leaks
+
 - keys from env only (OPENAI_API_KEY, ANTHROPIC_API_KEY, MELDR_*_KEY)
 - in-memory only for the single cmd session, never written to disk, never cached, never logged
 - output auto-scrubs key leaks with [redacted]

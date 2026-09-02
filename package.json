@@ -1,5 +1,5 @@
 {
-  "name": "meldr",
+  "name": "@ranveerlabs/meldr",
   "version": "0.1.0",
   "description": "Wire-compatible API replacements, with contracts that heal themselves off the live API.",
   "type": "module",
@@ -43,5 +43,8 @@
   "homepage": "https://github.com/ranveerlabs/meldr#readme",
   "dependencies": {
     "js-yaml": "^4.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
