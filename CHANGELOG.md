@@ -24,4 +24,6 @@ changelog
 - meldr heal --diff shows the patch and writes nothing
 - --provider takes any name, openai shaped by default, so openrouter groq
   together deepseek and local servers work with --base-url
+- meldr record, one real request per operation saved to recording.json, and
+  meldr serve --from replays it. credential fields are scrubbed before writing
 

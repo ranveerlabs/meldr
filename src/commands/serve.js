@@ -1,4 +1,6 @@
+import { readFile } from 'node:fs/promises'
 import { loadConfig, servePort, contractPath } from '../config.js'
+import { replayIndex, summarizeRecording } from '../record.js'
 import { loadSpec } from '../spec.js'
 import { createServer, routeList } from '../serve.js'
 import { CliError, c, pad } from '../ui.js'
@@ -11,13 +13,32 @@ export async function cmdServe(flags, args, ctx) {
   const host = flags.host ?? '127.0.0.1'
   const cors = flags.cors ?? config.cors === true
 
-  const server = createServer(spec, { cors })
+  let replay = null
+  const from = flags.from ?? config.from
+  if (from) {
+    let rec
+    try {
+      rec = JSON.parse(await readFile(from, 'utf8'))
+    } catch (e) {
+      throw new CliError(`could not read recording ${from}: ${e.message}`, 'make one with `meldr record --base <url>`')
+    }
+    try {
+      replay = replayIndex(rec)
+    } catch (e) {
+      throw new CliError(e.message)
+    }
+    const s = summarizeRecording(rec)
+    console.log('')
+    console.log(`  ${c.dim(`replaying ${from}, ${replay.size} of ${s.total} operations captured ${rec.recordedAt?.slice(0, 10) ?? ''}`)}`)
+  }
+
+  const server = createServer(spec, { cors, replay })
   await new Promise((resolve, reject) => {
     server.once('error', reject)
     server.listen(port, host, resolve)
   })
 
-  printBanner(spec, host, port)
+  printBanner(spec, host, port, replay?.size ?? 0)
 
   await new Promise((resolve) => {
     const stop = () => {
@@ -41,7 +62,7 @@ async function loadSpecOrHint(contractPath) {
   }
 }
 
-function printBanner(spec, host, port) {
+function printBanner(spec, host, port, replayed) {
   const routes = routeList(spec)
   console.log('')
   console.log(`  ${c.cyan(c.bold('meldr'))} serving ${c.bold(spec.title)} v${spec.version}`)
@@ -51,6 +72,7 @@ function printBanner(spec, host, port) {
     console.log(`  ${c.green(pad(r.method, 7))}${c.dim(r.path)}${r.summary ? c.dim(`   ${r.summary}`) : ''}`)
   }
   console.log('')
+  if (replayed) console.log(c.dim(`  replaying ${replayed} recorded operation(s), the rest fall back to the contract`))
   console.log(c.dim(`  introspection: /__meldr/routes · /__meldr/contract · /__meldr/health`))
   console.log(c.dim(`  curl -H "X-Meldr-Status: <code>" any endpoint forces a declared response`))
   console.log(c.dim(`  ^C to stop`))

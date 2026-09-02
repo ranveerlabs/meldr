@@ -143,6 +143,15 @@ async function handleRequest(req, res, spec, opts) {
     if (v !== undefined && v !== null) headers[name.toLowerCase()] = String(v)
   }
 
+  // a recording of the real thing beats anything synthesised from the schema
+  const taped = opts.replay?.get(`${op.method} ${op.path}`)
+  if (taped && forced === undefined) {
+    const headers2 = taped.contentType ? { 'content-type': taped.contentType } : {}
+    if (opts.cors) applyCors(res)
+    res.writeHead(taped.status, headers2)
+    return res.end(typeof taped.body === 'string' ? taped.body : JSON.stringify(taped.body))
+  }
+
   let payloadText = ''
   if (media) {
     const example = mediaExample(media)

@@ -6,6 +6,7 @@ import { cmdGen } from './commands/gen.js'
 import { cmdVerify } from './commands/verify.js'
 import { cmdDraft } from './commands/draft.js'
 import { cmdHeal } from './commands/heal.js'
+import { cmdRecord } from './commands/record.js'
 
 export const VERSION = '0.1.0'
 
@@ -24,8 +25,8 @@ const COMMANDS = {
   },
   serve: {
     summary: 'run a wire-compatible replacement server',
-    usage: 'meldr serve [--port N] [--host H] [--cors] [--contract path]',
-    flags: { port: 'int', host: 'string', cors: 'bool', contract: 'string', config: 'string' },
+    usage: 'meldr serve [--from recording.json] [--port N] [--host H] [--cors] [--contract path]',
+    flags: { from: 'string', port: 'int', host: 'string', cors: 'bool', contract: 'string', config: 'string' },
     run: cmdServe,
   },
   gen: {
@@ -45,6 +46,23 @@ const COMMANDS = {
     usage: 'meldr draft <file-or-> [--provider openai|anthropic] [--model m] [--out path]',
     flags: { provider: 'string', model: 'string', out: 'string', 'base-url': 'string' },
     run: cmdDraft,
+  },
+  record: {
+    summary: 'capture the real API so you can serve it back offline',
+    usage: 'meldr record --base url [--out recording.json] [--header "K: V"] [--param n=v]',
+    flags: {
+      base: 'string',
+      out: 'string',
+      header: 'list',
+      param: 'list',
+      prefix: 'string',
+      timeout: 'int',
+      concurrency: 'int',
+      insecure: 'bool',
+      contract: 'string',
+      config: 'string',
+    },
+    run: cmdRecord,
   },
   heal: {
     summary: 'self-maintain: pull the contract back onto the live api',

@@ -78,6 +78,7 @@ serve    run a wire-compatible replacement server
 gen      generate a standalone, dependency-free editable server
 verify   verify a running implementation against the contract
 draft    BYOK: draft a contract from a description via your own AI key
+record   capture the real API so you can serve it back offline
 heal     self-maintain: pull the contract back onto the live api
 ```
 
@@ -102,6 +103,29 @@ meldr verify
 meldr gen
 node server.mjs
 ```
+
+record it while you still can
+
+if the api you depend on is going away, or behind a subscription, or rate
+limited to nothing, capture it once and serve it back forever
+
+```
+meldr record --base https://api.example.com --header "Authorization: Bearer $TOKEN"
+meldr serve --from recording.json
+```
+
+one real request per operation, the actual bodies saved to json. after that the
+upstream can go dark and your dev loop doesnt notice. the recording is real
+data, so the ids and the pagination and the error shapes are the ones you will
+actually get, not something synthesised from the schema
+
+access_token, refresh_token, client_secret and friends get replaced with
+[scrubbed] before anything is written, and it tells you how many it caught.
+still read the file before you commit it, a response body holds more than you
+expect
+
+anything not in the recording falls back to the contract, and X-Meldr-Status
+still forces a declared response so your retry paths stay testable
 
 pointing it at a real api
 
