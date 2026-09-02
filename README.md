@@ -13,6 +13,11 @@ to string, a 201 quietly became a 202, and nothing told the yaml sitting in your
 repo. meldr sends one real request per operation, compares what came back
 against what the contract claims, and writes the difference back
 
+![meldr verify --heal](https://raw.githubusercontent.com/ranveerlabs/meldr/main/assets/demo.svg)
+
+thats a real run replayed at reading speed, the actual thing takes about a fifth
+of a second. `node tools/demo.mjs` regenerates it
+
 ```
 meldr verify --heal
 

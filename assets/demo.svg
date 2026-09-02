@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 816 552" width="816" height="552" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13">
+<style>
+.r0{opacity:0;animation:r0 8.38s infinite}
+@keyframes r0{0%,5.967%{opacity:0}6.367%,100%{opacity:1}}
+.r1{opacity:0;animation:r1 8.38s infinite}
+@keyframes r1{0%,7.518%{opacity:0}7.918%,100%{opacity:1}}
+.r2{opacity:0;animation:r2 8.38s infinite}
+@keyframes r2{0%,9.069%{opacity:0}9.469%,100%{opacity:1}}
+.r3{opacity:0;animation:r3 8.38s infinite}
+@keyframes r3{0%,16.587%{opacity:0}16.987%,100%{opacity:1}}
+.r4{opacity:0;animation:r4 8.38s infinite}
+@keyframes r4{0%,18.138%{opacity:0}18.538%,100%{opacity:1}}
+.r5{opacity:0;animation:r5 8.38s infinite}
+@keyframes r5{0%,19.690%{opacity:0}20.090%,100%{opacity:1}}
+.r6{opacity:0;animation:r6 8.38s infinite}
+@keyframes r6{0%,21.241%{opacity:0}21.641%,100%{opacity:1}}
+.r7{opacity:0;animation:r7 8.38s infinite}
+@keyframes r7{0%,22.792%{opacity:0}23.192%,100%{opacity:1}}
+.r8{opacity:0;animation:r8 8.38s infinite}
+@keyframes r8{0%,24.344%{opacity:0}24.744%,100%{opacity:1}}
+.r9{opacity:0;animation:r9 8.38s infinite}
+@keyframes r9{0%,25.895%{opacity:0}26.295%,100%{opacity:1}}
+.r10{opacity:0;animation:r10 8.38s infinite}
+@keyframes r10{0%,33.413%{opacity:0}33.813%,100%{opacity:1}}
+.r11{opacity:0;animation:r11 8.38s infinite}
+@keyframes r11{0%,34.964%{opacity:0}35.364%,100%{opacity:1}}
+.r12{opacity:0;animation:r12 8.38s infinite}
+@keyframes r12{0%,36.516%{opacity:0}36.916%,100%{opacity:1}}
+.r13{opacity:0;animation:r13 8.38s infinite}
+@keyframes r13{0%,38.067%{opacity:0}38.467%,100%{opacity:1}}
+.r14{opacity:0;animation:r14 8.38s infinite}
+@keyframes r14{0%,39.618%{opacity:0}40.018%,100%{opacity:1}}
+.r15{opacity:0;animation:r15 8.38s infinite}
+@keyframes r15{0%,41.169%{opacity:0}41.569%,100%{opacity:1}}
+.r16{opacity:0;animation:r16 8.38s infinite}
+@keyframes r16{0%,42.721%{opacity:0}43.121%,100%{opacity:1}}
+.r17{opacity:0;animation:r17 8.38s infinite}
+@keyframes r17{0%,44.272%{opacity:0}44.672%,100%{opacity:1}}
+.r18{opacity:0;animation:r18 8.38s infinite}
+@keyframes r18{0%,45.823%{opacity:0}46.223%,100%{opacity:1}}
+.r19{opacity:0;animation:r19 8.38s infinite}
+@keyframes r19{0%,47.375%{opacity:0}47.775%,100%{opacity:1}}
+.r20{opacity:0;animation:r20 8.38s infinite}
+@keyframes r20{0%,54.893%{opacity:0}55.293%,100%{opacity:1}}
+.r21{opacity:0;animation:r21 8.38s infinite}
+@keyframes r21{0%,56.444%{opacity:0}56.844%,100%{opacity:1}}
+.r22{opacity:0;animation:r22 8.38s infinite}
+@keyframes r22{0%,57.995%{opacity:0}58.395%,100%{opacity:1}}
+.r23{opacity:0;animation:r23 8.38s infinite}
+@keyframes r23{0%,59.547%{opacity:0}59.947%,100%{opacity:1}}
+.r24{opacity:0;animation:r24 8.38s infinite}
+@keyframes r24{0%,61.098%{opacity:0}61.498%,100%{opacity:1}}
+.r25{opacity:0;animation:r25 8.38s infinite}
+@keyframes r25{0%,62.649%{opacity:0}63.049%,100%{opacity:1}}
+text{white-space:pre}
+</style>
+<rect width="816" height="552" rx="8" fill="#0d1117"/>
+<rect width="816" height="28" rx="8" fill="#161b22"/>
+<rect y="20" width="816" height="8" fill="#161b22"/>
+<circle cx="18" cy="14" r="5" fill="#ff5f57"/><circle cx="36" cy="14" r="5" fill="#febc2e"/><circle cx="54" cy="14" r="5" fill="#28c840"/>
+<text y="54" class="r0"><tspan x="18" fill="#56d364">$ </tspan><tspan x="32.4" fill="#f0f6fc" font-weight="600">meldr verify --heal --all</tspan></text>
+<text y="73" class="r1"><tspan x="18.0" fill="#c9d1d9">verifying </tspan><tspan x="90.2" fill="#f0f6fc" font-weight="600">Meldr Petstore</tspan><tspan x="191.3" fill="#c9d1d9"> against http://localhost:4123</tspan></text>
+<text y="92" class="r2"></text>
+<text y="111" class="r3"><tspan x="18.0" fill="#c9d1d9">GET /v1/pets          </tspan><tspan x="176.8" fill="#ff7b72">FAIL</tspan><tspan x="205.7" fill="#c9d1d9"> 200  </tspan><tspan x="249.0" fill="#6e7681">$[0].id: expected integer, got string; $[1].id: expected integer, got string</tspan></text>
+<text y="130" class="r4"><tspan x="18.0" fill="#c9d1d9">POST /v1/pets         </tspan><tspan x="176.8" fill="#ff7b72">FAIL</tspan><tspan x="205.7" fill="#c9d1d9"> 202  </tspan><tspan x="249.0" fill="#6e7681">expected status 201, got 202; id: expected integer, got string</tspan></text>
+<text y="149" class="r5"><tspan x="18.0" fill="#c9d1d9">DELETE /v1/pets/{id}  </tspan><tspan x="176.8" fill="#56d364">PASS</tspan><tspan x="205.7" fill="#c9d1d9"> 204  </tspan></text>
+<text y="168" class="r6"><tspan x="18.0" fill="#c9d1d9">GET /v1/pets/{id}     </tspan><tspan x="176.8" fill="#ff7b72">FAIL</tspan><tspan x="205.7" fill="#c9d1d9"> 200  </tspan><tspan x="249.0" fill="#6e7681">id: expected integer, got string</tspan></text>
+<text y="187" class="r7"></text>
+<text y="206" class="r8"><tspan x="18.0" fill="#ff7b72">1 passed · 3 failed</tspan></text>
+<text y="225" class="r9"></text>
+<text y="244" class="r10"><tspan x="18.0" fill="#c9d1d9">healing </tspan><tspan x="75.8" fill="#f0f6fc" font-weight="600">Meldr Petstore</tspan><tspan x="176.8" fill="#c9d1d9"> v1.0.0 against live http://localhost:4123</tspan></text>
+<text y="263" class="r11"></text>
+<text y="282" class="r12"><tspan x="18.0" fill="#c9d1d9">GET /v1/pets   </tspan><tspan x="126.3" fill="#56d364">FIX </tspan><tspan x="155.2" fill="#c9d1d9"> $[0].id                  </tspan><tspan x="342.9" fill="#6e7681">contract says integer, live sends string</tspan></text>
+<text y="301" class="r13"><tspan x="18.0" fill="#c9d1d9">GET /v1/pets   </tspan><tspan x="126.3" fill="#56d364">FIX </tspan><tspan x="155.2" fill="#c9d1d9"> $[0].createdAt           </tspan><tspan x="342.9" fill="#6e7681">live sends "createdAt" (string), contract does not declare it</tspan></text>
+<text y="320" class="r14"><tspan x="18.0" fill="#c9d1d9">POST /v1/pets  </tspan><tspan x="126.3" fill="#e3b341">RISK</tspan><tspan x="155.2" fill="#c9d1d9"> responses.201 -&gt; 202     </tspan><tspan x="342.9" fill="#6e7681">contract's success is 201, live answers 202</tspan></text>
+<text y="339" class="r15"></text>
+<text y="358" class="r16"><tspan x="18.0" fill="#56d364">✓</tspan><tspan x="25.2" fill="#c9d1d9"> healed </tspan><tspan x="83.0" fill="#f0f6fc" font-weight="600">contracts\api.yaml</tspan><tspan x="212.9" fill="#c9d1d9">, 3 fix(es) applied</tspan></text>
+<text y="377" class="r17"></text>
+<text y="396" class="r18"><tspan x="18.0" fill="#c9d1d9">re-verifying </tspan><tspan x="111.9" fill="#f0f6fc" font-weight="600">Meldr Petstore</tspan><tspan x="212.9" fill="#c9d1d9"> against http://localhost:4123</tspan></text>
+<text y="415" class="r19"></text>
+<text y="434" class="r20"><tspan x="18.0" fill="#c9d1d9">GET /v1/pets          </tspan><tspan x="176.8" fill="#56d364">PASS</tspan><tspan x="205.7" fill="#c9d1d9"> 200  </tspan></text>
+<text y="453" class="r21"><tspan x="18.0" fill="#c9d1d9">POST /v1/pets         </tspan><tspan x="176.8" fill="#56d364">PASS</tspan><tspan x="205.7" fill="#c9d1d9"> 202  </tspan></text>
+<text y="472" class="r22"><tspan x="18.0" fill="#c9d1d9">DELETE /v1/pets/{id}  </tspan><tspan x="176.8" fill="#56d364">PASS</tspan><tspan x="205.7" fill="#c9d1d9"> 204  </tspan></text>
+<text y="491" class="r23"><tspan x="18.0" fill="#c9d1d9">GET /v1/pets/{id}     </tspan><tspan x="176.8" fill="#56d364">PASS</tspan><tspan x="205.7" fill="#c9d1d9"> 200  </tspan></text>
+<text y="510" class="r24"></text>
+<text y="529" class="r25"><tspan x="18.0" fill="#56d364">4 passed · 0 failed</tspan></text>
+</svg>
