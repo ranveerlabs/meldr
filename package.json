@@ -1,7 +1,7 @@
 {
   "name": "meldr",
   "version": "0.1.0",
-  "description": "Wire-compatible API replacements without the rebuild.",
+  "description": "Wire-compatible API replacements, with contracts that heal themselves off the live API.",
   "type": "module",
   "license": "Apache-2.0",
   "author": "meldr contributors",
@@ -28,7 +28,10 @@
     "contract-testing",
     "compatibility",
     "developer-tools",
-    "codegen"
+    "codegen",
+    "contract-drift",
+    "self-healing",
+    "api-testing"
   ],
   "repository": {
     "type": "git",

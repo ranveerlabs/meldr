@@ -35,3 +35,22 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node bin/meldr.js version
+
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: the served contract must not drift from itself
+        run: |
+          node bin/meldr.js init demo
+          cp testdata/petstore.yaml demo/contracts/api.yaml
+          (cd demo && node ../bin/meldr.js serve &)
+          for i in $(seq 1 60); do curl -sf localhost:3000/__meldr/health > /dev/null && break; sleep 0.5; done
+          cd demo
+          node ../bin/meldr.js verify --no-color
+          node ../bin/meldr.js heal --check --no-color

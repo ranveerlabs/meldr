@@ -2,40 +2,14 @@ import { pickSuccess } from './spec.js'
 import { paramValue, requestBodyValue, preferJson } from './mock.js'
 import { c, pad } from './ui.js'
 
-function joinPath(a, b) {
+export function joinPath(a, b) {
   if (!a || a === '/') return b
   return a.replace(/\/+$/, '') + b
 }
 
-export async function runVerify(spec, opts = {}) {
-  const base = String(opts.base ?? 'http://localhost:3000').replace(/\/+$/, '')
-  let parsedBase
-  try {
-    parsedBase = new URL(base)
-  } catch {
-    throw new Error(`invalid --base URL: ${base}`)
-  }
-  if (!/^https?:$/.test(parsedBase.protocol)) throw new Error(`--base must be http(s): ${base}`)
-  const prefix = opts.prefix !== undefined ? opts.prefix : (spec.servers[0] ?? '/')
-  const rows = []
-  for (const op of spec.operations) {
-    rows.push(await verifyOperation(spec, op, base, prefix, opts.timeoutMs ?? 10000))
-  }
-  return rows
-}
-
-async function verifyOperation(spec, op, base, prefix, timeoutMs) {
-  const label = `${op.method.toUpperCase()} ${joinPath(prefix, op.path)}`
-  const expected = pickSuccess(op)
-  const successShaped =
-    expected &&
-    ((/^\d{3}$/.test(expected.key) && expected.key.startsWith('2')) ||
-      expected.key === '2XX' ||
-      expected.key === 'default')
-  if (!successShaped) {
-    return { op: label, status: null, expected: '-', pass: null, warns: [], issues: [], skipped: `declares no success response (has: ${Object.keys(op.responses).join(', ') || 'none'})` }
-  }
-
+// builds the one request meldr sends per operation. verify and drift both go through here
+// so a probe and a check hit byte-identical urls
+export function buildRequest(spec, op, base, prefix) {
   let full = joinPath(prefix, op.path).replace(/\{([^}]+)\}/g, (_, name) => {
     const p = op.params.find((x) => x.in === 'path' && x.name === name)
     return p ? encodeURIComponent(paramValue(p)) : `{${name}}`
@@ -64,14 +38,41 @@ async function verifyOperation(spec, op, base, prefix, timeoutMs) {
     }
   }
 
+  return { label: `${op.method.toUpperCase()} ${joinPath(prefix, op.path)}`, url: base + full, method: op.method.toUpperCase(), headers, body }
+}
+
+export async function runVerify(spec, opts = {}) {
+  const base = String(opts.base ?? 'http://localhost:3000').replace(/\/+$/, '')
+  let parsedBase
+  try {
+    parsedBase = new URL(base)
+  } catch {
+    throw new Error(`invalid --base URL: ${base}`)
+  }
+  if (!/^https?:$/.test(parsedBase.protocol)) throw new Error(`--base must be http(s): ${base}`)
+  const prefix = opts.prefix !== undefined ? opts.prefix : (spec.servers[0] ?? '/')
+  const rows = []
+  for (const op of spec.operations) {
+    rows.push(await verifyOperation(spec, op, base, prefix, opts.timeoutMs ?? 10000))
+  }
+  return rows
+}
+
+async function verifyOperation(spec, op, base, prefix, timeoutMs) {
+  const { label, url, method, headers, body } = buildRequest(spec, op, base, prefix)
+  const expected = pickSuccess(op)
+  const successShaped =
+    expected &&
+    ((/^\d{3}$/.test(expected.key) && expected.key.startsWith('2')) ||
+      expected.key === '2XX' ||
+      expected.key === 'default')
+  if (!successShaped) {
+    return { op: label, status: null, expected: '-', pass: null, warns: [], issues: [], skipped: `declares no success response (has: ${Object.keys(op.responses).join(', ') || 'none'})` }
+  }
+
   let res
   try {
-    res = await fetch(base + full, {
-      method: op.method.toUpperCase(),
-      headers,
-      body,
-      signal: AbortSignal.timeout(timeoutMs),
-    })
+    res = await fetch(url, { method, headers, body, signal: AbortSignal.timeout(timeoutMs) })
   } catch (e) {
     return { op: label, status: null, expected: expected.key, pass: false, warns: [], issues: [], skipped: null, detail: `request failed: ${e.message}` }
   }

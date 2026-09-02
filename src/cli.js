@@ -5,6 +5,7 @@ import { cmdServe } from './commands/serve.js'
 import { cmdGen } from './commands/gen.js'
 import { cmdVerify } from './commands/verify.js'
 import { cmdDraft } from './commands/draft.js'
+import { cmdHeal } from './commands/heal.js'
 
 export const VERSION = '0.1.0'
 
@@ -35,8 +36,8 @@ const COMMANDS = {
   },
   verify: {
     summary: 'verify a running implementation against the contract',
-    usage: 'meldr verify [--base url] [--prefix p] [--timeout s] [--insecure] [--contract path]',
-    flags: { base: 'string', prefix: 'string', timeout: 'int', insecure: 'bool', contract: 'string', config: 'string' },
+    usage: 'meldr verify [--heal] [--all] [--base url] [--prefix p] [--timeout s] [--insecure] [--contract path]',
+    flags: { heal: 'bool', all: 'bool', base: 'string', prefix: 'string', timeout: 'int', insecure: 'bool', contract: 'string', config: 'string' },
     run: cmdVerify,
   },
   draft: {
@@ -44,6 +45,26 @@ const COMMANDS = {
     usage: 'meldr draft <file-or-> [--provider openai|anthropic] [--model m] [--out path]',
     flags: { provider: 'string', model: 'string', out: 'string', 'base-url': 'string' },
     run: cmdDraft,
+  },
+  heal: {
+    summary: 'self-maintain: pull the contract back onto the live api',
+    usage: 'meldr heal [--check] [--base url] [--upstream file-or-url] [--all] [--ai] [--report f.json]',
+    flags: {
+      check: 'bool',
+      all: 'bool',
+      ai: 'bool',
+      base: 'string',
+      prefix: 'string',
+      timeout: 'int',
+      upstream: 'string',
+      report: 'string',
+      provider: 'string',
+      model: 'string',
+      'base-url': 'string',
+      contract: 'string',
+      config: 'string',
+    },
+    run: cmdHeal,
   },
 }
 
@@ -97,7 +118,7 @@ export function parseFlags(argv, specs = {}) {
 }
 
 function rootHelp() {
-  console.log(`  ${c.cyan(c.bold('meldr'))} — wire-compatible API replacements without the rebuild`)
+  console.log(`  ${c.cyan(c.bold('meldr'))}, wire-compatible API replacements without the rebuild`)
   console.log('')
   console.log('  Usage: meldr <command> [options]')
   console.log('')
@@ -160,7 +181,7 @@ export async function main(argv) {
       return 1
     }
     die(e && e.message ? e.message : String(e))
-    console.error(c.dim('this looks like a bug — please report it: https://github.com/ranveerlabs/meldr/issues'))
+    console.error(c.dim('this looks like a bug, report it: https://github.com/ranveerlabs/meldr/issues'))
     return 1
   }
 }

@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { main, parseFlags } from '../src/cli.js'
-import { makeTmp } from './helpers.js'
+import { makeTmp, freePort } from './helpers.js'
 
 const BIN = fileURLToPath(new URL('../bin/meldr.js', import.meta.url))
 
@@ -76,3 +76,49 @@ test('pull copies a contract and wires up config (as a real subprocess)', async 
   const badContract = await runCli(['serve', '--contract', path.join(dir, 'nope.yaml')], dir)
   assert.equal(badContract.code, 1)
 })
+
+test('heal is a real command, not just a readme promise', async () => {
+  const help = await runCli(['--help', '--no-color'])
+  assert.match(help.out, /heal\s+self-maintain/)
+  const usage = await runCli(['heal', '--help', '--no-color'])
+  assert.equal(usage.code, 0)
+  assert.match(usage.out, /--check/)
+})
+
+test('heal without an implementation to look at says so', async () => {
+  const dir = await makeTmp()
+  const project = path.join(dir, 'demo')
+  assert.equal((await runCli(['init', project, '--no-color'], dir)).code, 0)
+  const r = await runCli(['heal', '--base', 'http://127.0.0.1:1', '--timeout', '1', '--no-color'], project)
+  assert.equal(r.code, 1)
+  assert.match(r.out, /nothing answering/)
+})
+
+test('heal --check is a clean CI gate when the contract is honest', async () => {
+  const dir = await makeTmp()
+  const project = path.join(dir, 'demo')
+  await runCli(['init', project, '--no-color'], dir)
+  const port = await freePort()
+  const serve = spawn(process.execPath, [BIN, 'serve', '--port', String(port), '--no-color'], { cwd: project, stdio: ['ignore', 'pipe', 'pipe'] })
+  try {
+    await waitForPort(port)
+    const r = await runCli(['heal', '--check', '--base', `http://127.0.0.1:${port}`, '--no-color'], project)
+    assert.equal(r.code, 0)
+    assert.match(r.out, /no drift/)
+  } finally {
+    serve.kill()
+  }
+})
+
+async function waitForPort(port) {
+  for (let i = 0; i < 100; i++) {
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/__meldr/health`)
+      if (res.ok) return
+    } catch {
+      /* not up yet */
+    }
+    await new Promise((r) => setTimeout(r, 50))
+  }
+  throw new Error(`server on ${port} never came up`)
+}
