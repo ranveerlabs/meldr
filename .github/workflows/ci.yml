@@ -35,6 +35,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node bin/meldr.js version
+      - run: node tools/unused.mjs
 
   drift:
     runs-on: ubuntu-latest
@@ -71,12 +72,16 @@ jobs:
           cp testdata/petstore.yaml demo-clean/contracts/api.yaml
           node bin/meldr.js init demo-drift
           cp testdata/petstore.yaml demo-drift/contracts/api.yaml
+          node bin/meldr.js init demo-auth
+          cp testdata/petstore.yaml demo-auth/contracts/api.yaml
 
           (cd demo-clean && node ../bin/meldr.js serve --port 3300 &)
           node testdata/drifted.mjs 3301 &
+          (cd demo-auth && node ../bin/meldr.js serve --port 3302 --require-auth &)
 
           for i in $(seq 1 60); do curl -sf localhost:3300/__meldr/health > /dev/null && break; sleep 0.5; done
           for i in $(seq 1 60); do curl -sf localhost:3301/v1/pets > /dev/null && break; sleep 0.5; done
+          for i in $(seq 1 60); do curl -s localhost:3302/__meldr/health > /dev/null && break; sleep 0.5; done
 
       - name: a clean contract passes the action
         uses: ./
@@ -112,3 +117,29 @@ jobs:
           working-directory: demo-drift
           base: http://127.0.0.1:3301
           fail-on-drift: 'false'
+
+      - name: without a header the auth server locks the action out
+        id: noauth
+        continue-on-error: true
+        uses: ./
+        with:
+          version: ${{ github.workspace }}
+          working-directory: demo-auth
+          base: http://127.0.0.1:3302
+
+      - name: the same server passes once a header is handed over
+        uses: ./
+        with:
+          version: ${{ github.workspace }}
+          working-directory: demo-auth
+          base: http://127.0.0.1:3302
+          headers: 'Authorization: Bearer ci-token'
+          params: |
+            id=1
+
+      - name: the unauthenticated run had to fail
+        run: |
+          if [ "${{ steps.noauth.outcome }}" != "failure" ]; then
+            echo "a 401 on every route should not look like a healthy contract"
+            exit 1
+          fi

@@ -1,7 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import YAML from 'yaml'
-import { loadConfig } from '../config.js'
+import { loadConfig, configTemplate } from '../config.js'
 import { fetchContract } from '../spec.js'
 import { CliError, c } from '../ui.js'
 
@@ -33,7 +32,7 @@ export async function cmdPull(flags, args) {
     const name = String(spec.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'meldr-api'
     const cfgPath = path.resolve(process.cwd(), 'meldr.yaml')
     const rel = path.relative(path.dirname(cfgPath), dest).split(path.sep).join('/')
-    await writeFile(cfgPath, YAML.stringify({ name, contract: rel, port: 3000, cors: false }))
+    await writeFile(cfgPath, configTemplate(name, rel))
     console.log(`${c.green('✓')} created ${c.bold('meldr.yaml')}`)
   }
 

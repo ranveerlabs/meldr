@@ -1,8 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import YAML from 'yaml'
-import { STARTER_CONTRACT } from '../config.js'
+import { STARTER_CONTRACT, configTemplate } from '../config.js'
 import { CliError, c } from '../ui.js'
 
 export async function cmdInit(flags, args) {
@@ -20,7 +19,7 @@ export async function cmdInit(flags, args) {
   }
 
   await mkdir(path.join(target, 'contracts'), { recursive: true })
-  await writeFile(cfgPath, YAML.stringify({ name, contract: 'contracts/api.yaml', port: 3000, cors: false }))
+  await writeFile(cfgPath, configTemplate(name, 'contracts/api.yaml'))
   await writeFile(contractPath, STARTER_CONTRACT.split('__NAME__').join(name))
 
   const gitignore = path.join(target, '.gitignore')

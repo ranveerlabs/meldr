@@ -3,7 +3,7 @@ import path from 'node:path'
 import YAML from 'yaml'
 import { loadConfig, contractPath, servePort, headersFor, paramsFor } from '../config.js'
 import { fetchContract, parseSpec } from '../spec.js'
-import { probeDrift, upstreamDrift, applyFindings, applyToYaml, summarizeDrift } from '../drift.js'
+import { probeDrift, upstreamDrift, applyToYaml, summarizeDrift } from '../drift.js'
 import { resolveSession } from '../session.js'
 import { CliError, c, pad } from '../ui.js'
 

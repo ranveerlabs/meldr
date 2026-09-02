@@ -44,6 +44,35 @@ export function servePort(config, flagValue) {
   return v
 }
 
+// written as text not stringify, the commented blocks are how anyone finds out
+// these knobs exist
+export function configTemplate(name, contract, port = 3000) {
+  return `name: ${name}
+contract: ${contract}
+port: ${port}
+cors: false
+
+# talking to a real api
+# headers:
+#   Authorization: Bearer \${API_TOKEN}
+# params:
+#   default: {limit: 5}
+#   getThing: {id: real-id-here}
+
+# meldr record captures one response per operation, list ids for more
+# record:
+#   base: https://api.example.com
+#   cases:
+#     getThing:
+#       - {id: real-id-here}
+
+# serve knobs, same as the flags
+# stateful: true
+# requireAuth: true
+# from: recording.json
+`
+}
+
 export const STARTER_CONTRACT = `openapi: 3.0.3
 info:
   title: __NAME__ API
