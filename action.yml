@@ -1,0 +1,84 @@
+name: meldr drift check
+description: fail the build when the live api has drifted from the openapi contract
+author: ranveerlabs
+
+branding:
+  icon: activity
+  color: purple
+
+inputs:
+  base:
+    description: url of the running implementation to probe. defaults to whatever port meldr.yaml says
+    required: false
+    default: ''
+  contract:
+    description: path to the contract, defaults to the one in meldr.yaml
+    required: false
+    default: ''
+  upstream:
+    description: diff against this contract instead of a live server, file or url
+    required: false
+    default: ''
+  report:
+    description: write the machine readable drift report here
+    required: false
+    default: ''
+  working-directory:
+    description: directory holding meldr.yaml
+    required: false
+    default: '.'
+  version:
+    description: what to install. a semver range once its on npm, or a git ref
+    required: false
+    default: 'github:ranveerlabs/meldr'
+  fail-on-drift:
+    description: set false to report drift without failing the build
+    required: false
+    default: 'true'
+
+outputs:
+  drifted:
+    description: true when meldr found drift
+    value: ${{ steps.check.outputs.drifted }}
+
+runs:
+  using: composite
+  steps:
+    - name: install meldr
+      shell: bash
+      run: npm install -g "${{ inputs.version }}"
+
+    - name: check for drift
+      id: check
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        # if blocks not [ x ] && y, github runs this with bash -e and a failed
+        # test is a failed step
+        args=(heal --check --no-color)
+        if [ -n "${{ inputs.base }}" ]; then args+=(--base "${{ inputs.base }}"); fi
+        if [ -n "${{ inputs.contract }}" ]; then args+=(--contract "${{ inputs.contract }}"); fi
+        if [ -n "${{ inputs.upstream }}" ]; then args+=(--upstream "${{ inputs.upstream }}"); fi
+        if [ -n "${{ inputs.report }}" ]; then args+=(--report "${{ inputs.report }}"); fi
+
+        set +e
+        meldr "${args[@]}"
+        code=$?
+        set -e
+
+        if [ "$code" -eq 0 ]; then
+          echo "drifted=false" >> "$GITHUB_OUTPUT"
+          echo "no drift" >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        echo "drifted=true" >> "$GITHUB_OUTPUT"
+        # exit 1 is drift, anything else is meldr itself falling over and that always fails
+        if [ "$code" -ne 1 ]; then
+          echo "meldr exited $code, that is not a drift result" >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
+        fi
+
+        echo "contract drifted, run meldr verify --heal locally" >> "$GITHUB_STEP_SUMMARY"
+        if [ "${{ inputs.fail-on-drift }}" = "true" ]; then exit 1; fi
+        exit 0

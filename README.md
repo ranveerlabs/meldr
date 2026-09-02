@@ -112,13 +112,25 @@ bodies
 
 ci gate
 
-meldr heal --check writes nothing and exits 1 on drift
+meldr heal --check writes nothing and exits 1 on drift. theres an action so you
+dont have to wire it yourself
+
+```yaml
+- uses: ranveerlabs/meldr@main
+  with:
+    base: http://localhost:3000
+```
+
+or by hand if you want the pieces
 
 ```yaml
 - run: meldr serve &
 - run: meldr verify
 - run: meldr heal --check --report drift.json
 ```
+
+the action takes base, contract, upstream, report, working-directory, version
+and fail-on-drift, and sets a `drifted` output so a later step can open the PR
 
 drift.json is stable, kind/op/at/detail/safety/patchable per finding plus a
 summary. wire it to whatever opens the PR

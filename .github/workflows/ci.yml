@@ -54,3 +54,61 @@ jobs:
           cd demo
           node ../bin/meldr.js verify --no-color
           node ../bin/meldr.js heal --check --no-color
+
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: stand up one honest server and one drifted one
+        run: |
+          node bin/meldr.js init demo-clean
+          cp testdata/petstore.yaml demo-clean/contracts/api.yaml
+          node bin/meldr.js init demo-drift
+          cp testdata/petstore.yaml demo-drift/contracts/api.yaml
+
+          (cd demo-clean && node ../bin/meldr.js serve --port 3300 &)
+          node testdata/drifted.mjs 3301 &
+
+          for i in $(seq 1 60); do curl -sf localhost:3300/__meldr/health > /dev/null && break; sleep 0.5; done
+          for i in $(seq 1 60); do curl -sf localhost:3301/v1/pets > /dev/null && break; sleep 0.5; done
+
+      - name: a clean contract passes the action
+        uses: ./
+        with:
+          version: ${{ github.workspace }}
+          working-directory: demo-clean
+          base: http://127.0.0.1:3300
+
+      - name: a drifted contract fails it
+        id: drifted
+        continue-on-error: true
+        uses: ./
+        with:
+          version: ${{ github.workspace }}
+          working-directory: demo-drift
+          base: http://127.0.0.1:3301
+
+      - name: the drifted run had to fail, thats the whole job
+        run: |
+          if [ "${{ steps.drifted.outcome }}" != "failure" ]; then
+            echo "the action passed a drifted contract"
+            exit 1
+          fi
+          if [ "${{ steps.drifted.outputs.drifted }}" != "true" ]; then
+            echo "expected the drifted output to be true, got '${{ steps.drifted.outputs.drifted }}'"
+            exit 1
+          fi
+
+      - name: fail-on-drift false reports without failing
+        uses: ./
+        with:
+          version: ${{ github.workspace }}
+          working-directory: demo-drift
+          base: http://127.0.0.1:3301
+          fail-on-drift: 'false'
