@@ -62,16 +62,12 @@ export async function cmdDemo(flags, args) {
 
   const rel = path.relative(process.cwd(), dir) || dir
   console.log('')
-  console.log(`  that contract wasnt edited by hand. one real request per operation,`)
-  console.log(`  compared against what the contract claimed, difference written back.`)
-  console.log(`  the id fix went in through the $ref so it landed in`)
-  console.log(`  components/schemas/Pet and every route using it moved`)
+  console.log(c.dim(`  the id fix went into components/schemas/Pet, comments still there`))
   console.log('')
-  console.log(c.dim('poke at it'))
   console.log(c.dim(`  cd ${rel}`))
-  console.log(c.dim(`  git diff contracts/           # or just read it, the comments survived`))
+  console.log(c.dim(`  cat contracts/api.yaml`))
   console.log(c.dim(`  node drifted.mjs ${port} &`))
-  console.log(c.dim(`  meldr serve --stateful        # POST something and read it back`))
+  console.log(c.dim(`  meldr serve --stateful`))
   console.log('')
   return 0
 }
