@@ -91,7 +91,3 @@ function makeSession(provider, key, baseUrl) {
     },
   }
 }
-
-export function assertNoKeyPersistence(session) {
-  if (!session || typeof session.redact !== 'function') throw new Error('invalid session')
-}

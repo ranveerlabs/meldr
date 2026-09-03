@@ -158,7 +158,7 @@ async function handleRequest(req, res, spec, opts) {
     if (v !== undefined && v !== null) headers[name.toLowerCase()] = String(v)
   }
 
-  // writes have to survive a read or you cant build anything past a list view
+  // writes have to survive a read
   if (opts.state && forced === undefined) {
     const out = handleState(opts.state, spec, op, vars, rawBody)
     if (out && WRITES.has(op.method)) opts.persist?.(opts.state)
@@ -170,7 +170,7 @@ async function handleRequest(req, res, spec, opts) {
     }
   }
 
-  // a recording of the real thing beats anything synthesised from the schema
+  // tape first, schema second
   const tapes = opts.replay?.get(`${op.method} ${op.path}`)
   const taped = pickEntry(tapes, vars, url.searchParams, opts.strictReplay)
   if (!taped && tapes?.length && opts.strictReplay && forced === undefined) {
@@ -204,8 +204,8 @@ function statusColor(code) {
   return c.green(String(code))
 }
 
-// any non empty credential passes. this is here so you can build the auth
-// plumbing, it is not checking anything
+// any non empty credential passes, its for building the auth plumbing against
+// and checks nothing
 function credentialled(spec, req, url) {
   const schemes = spec.security ?? []
   if (!schemes.length) return Boolean(req.headers.authorization)

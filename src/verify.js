@@ -1,4 +1,4 @@
-import { pickSuccess } from './spec.js'
+import { pickSuccess, acceptsStatus } from './spec.js'
 import { pinned } from './config.js'
 import { paramValue, requestBodyValue, preferJson } from './mock.js'
 import { c, pad } from './ui.js'
@@ -106,7 +106,7 @@ async function verifyOperation(spec, op, base, prefix, timeoutMs, opts) {
     return { op: label, status: null, expected: expected.key, pass: false, warns: [], issues: [], skipped: null, detail: `request failed: ${e.message}` }
   }
 
-  const statusOk = acceptsExpected(op, res.status)
+  const statusOk = acceptsStatus(op, res.status)
   const text = await res.text()
   const warns = []
   const issues = []
@@ -136,19 +136,8 @@ async function verifyOperation(spec, op, base, prefix, timeoutMs, opts) {
     warns,
     issues,
     skipped: null,
-    detail: statusOk ? issues.join('; ') : `expected status ${describeExpected(op)}, got ${res.status}${issues.length ? `; ${issues.join('; ')}` : ''}`,
+    detail: statusOk ? issues.join('; ') : `expected status ${expected.key}, got ${res.status}${issues.length ? `; ${issues.join('; ')}` : ''}`,
   }
-}
-
-function describeExpected(op) {
-  return pickSuccess(op)?.key ?? 'a success response'
-}
-
-function acceptsExpected(op, status) {
-  const expected = pickSuccess(op)
-  if (!expected) return false
-  if (/^\d{3}$/.test(expected.key)) return String(status) === expected.key
-  return status >= 200 && status < 400
 }
 
 function validateShape(schema, v, at, issues, warns, depth) {

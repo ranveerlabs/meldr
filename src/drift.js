@@ -156,7 +156,7 @@ function compareOperation(doc, op, label, status, body, covered = []) {
   }
 
   if (!exact) {
-        if (status >= 400) covered.push({ op: label, status })
+    if (status >= 400) covered.push({ op: label, status })
     return out
   }
   if (body === undefined) return out

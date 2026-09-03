@@ -8,10 +8,11 @@
 
 meldr, wire-compatible API replacements without the rebuild
 
-your openapi file is lying to you. the api shipped a field, an id went from int
-to string, a 201 quietly became a 202, and nothing told the yaml sitting in your
-repo. meldr sends one real request per operation, compares what came back
-against what the contract claims, and writes the difference back
+your openapi file is lying to you. an id went from int to string, a 201 turned
+into a 202 in some deploy, the api started sending a field nobody wrote down,
+and the yaml sitting in your repo says none of it. meldr sends one real request
+per operation, reads what actually came back, and patches the contract where the
+two disagree
 
 ![meldr verify --heal](https://raw.githubusercontent.com/ranveerlabs/meldr/main/assets/demo.svg)
 
@@ -24,8 +25,8 @@ try it without installing anything
 npx @ranveergill/meldr demo
 ```
 
-one command, nothing installed, no account. it writes a contract and an api
-that drifted off it, then runs the loop
+it writes a contract and an api that drifted off it into a throwaway dir, then
+runs the loop. no account, nothing installed
 
 ```
 meldr verify --heal
@@ -59,10 +60,14 @@ GET /v1/pets/{id}     PASS 200
   still red · `meldr verify --heal --all` takes the destructive fixes too
 ```
 
-FIX goes in on sight. RISK waits for --all bcuz it deletes something, thats why
-that run ends one short. the patches go in through the $ref so one fix to Pet.id
-lands in components/schemas/Pet and every operation using it moves at once, read
-the git diff after, its a normal yaml diff
+FIX goes in on sight, RISK sits there until you pass --all bcuz it deletes
+something. thats the one held back up there, the run ends 3 and 1 instead of 4
+and 0
+
+patches land through the $ref, so a fix to Pet.id goes into
+components/schemas/Pet and every operation using it moves at once. read the git
+diff after, its a normal yaml diff. heal also stamps info.x-meldr with when it
+ran and how many patches it took, delete that if it annoys you
 
 ```
 fixed on sight
@@ -76,7 +81,8 @@ waits for --all
   dead upstream op  marked deprecated, never deleted
 ```
 
-allOf/oneOf/anyOf get reported and never auto-patched, too easy to wreck
+allOf/oneOf/anyOf get reported and never patched, i dont trust a merge of those
+to come out the other side intact
 
 commands
 
@@ -116,23 +122,21 @@ node server.mjs
 
 record it while you still can
 
-if the api you depend on is going away, or behind a subscription, or rate
-limited to nothing, capture it once and serve it back forever
+if the api youre depending on is going away, or sits behind a subscription, or
+is rate limited into uselessness, tape it once and serve it back
 
 ```
 meldr record --base https://api.example.com --header "Authorization: Bearer $TOKEN"
 meldr serve --from recording.json
 ```
 
-one real request per operation, the actual bodies saved to json. after that the
-upstream can go dark and your dev loop doesnt notice. the recording is real
-data, so the ids and the pagination and the error shapes are the ones you will
-actually get, not something synthesised from the schema
+one real request per operation, the actual bodies saved to json. after that
+upstream can go dark and the dev loop keeps going. its real data, so the ids and
+the pagination and the error shapes are the ones you actually get
 
 access_token, refresh_token, client_secret and friends get replaced with
-[scrubbed] before anything is written, and it tells you how many it caught.
-still read the file before you commit it, a response body holds more than you
-expect
+[scrubbed] before anything is written and it tells you how many it caught. read
+the file before you commit it anyway, a response body holds more than you expect
 
 anything not in the recording falls back to the contract, and X-Meldr-Status
 still forces a declared response so your retry paths stay testable
@@ -166,12 +170,16 @@ it, DELETE means the next read is a 404, and the list reflects all of it. the
 collection seeds itself from the contract on first touch so a fresh client isnt
 staring at an empty page
 
-in memory by default, --state-file state.json writes it out and picks it back
-up next time so a session survives a restart
+the store buckets on the last named segment of the path, so
+/users/{id}/playlists and /playlists/{id} land in the same one. its a heuristic
+and a weird enough set of paths will collide them wrong
+
+in memory by default, --state-file state.json writes it out and picks it back up
+next time so a session survives a restart
 
 --require-auth 401s anything without a credential, honouring whatever
 securitySchemes the contract declares. any value passes, its there so you can
-build the token plumbing and the refresh-on-401 path, its not checking anything
+build the token plumbing and the refresh-on-401 path
 
 both are off unless you ask, so verify and gen stay deterministic
 
@@ -205,8 +213,10 @@ see it before it writes
 meldr heal --diff
 ```
 
-comments and quote style survive a heal, the diff is the three real changes and
-not a reflow of the whole file
+comments survive bcuz the patch goes into a yaml Document instead of a reprint.
+quote style it guesses, counting `: '` against `: "` in your file and going with
+whichever wins, crude but it keeps the whole document from reflowing into the
+other one. so the diff is the three real changes
 
 upstream drift
 
@@ -262,14 +272,15 @@ port: 3000
 cors: false
 ```
 
-byok & zero leaks
+byok
 
-- keys from env only (OPENAI_API_KEY, ANTHROPIC_API_KEY, MELDR_*_KEY)
-- any provider works, --provider openrouter with --base-url and a
-  MELDR_OPENROUTER_KEY or OPENROUTER_API_KEY. openai and anthropic are the only
-  two meldr knows the base url for
-- in-memory only for the single cmd session, never written to disk, never cached, never logged
-- output auto-scrubs key leaks with [redacted]
-- no telemetry, no tracking, pure local execution
+keys come out of env only, OPENAI_API_KEY, ANTHROPIC_API_KEY, MELDR_*_KEY. any
+provider works, --provider openrouter with --base-url and a MELDR_OPENROUTER_KEY
+or OPENROUTER_API_KEY. openai and anthropic are the only two meldr knows the base
+url for
+
+a key lives in memory for the one command that used it. never written to disk,
+never cached, never logged, and output gets scrubbed with [redacted] on the way
+out. no telemetry, nothing phones home, it all runs locally
 
 license: apache-2.0

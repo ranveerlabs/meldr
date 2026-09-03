@@ -96,7 +96,7 @@ export async function cmdHeal(flags, args) {
     ydoc.createNode({ healedAt: new Date().toISOString(), source: report.source, applied: applied.length }),
   )
   // match the file or every flow collection and $ref reflows
-    const singleQuote = (raw.match(/: '/g) ?? []).length >= (raw.match(/: "/g) ?? []).length
+  const singleQuote = (raw.match(/: '/g) ?? []).length >= (raw.match(/: "/g) ?? []).length
   const next = ydoc.toString({ lineWidth: 0, flowCollectionPadding: false, singleQuote })
 
   if (flags.diff) {

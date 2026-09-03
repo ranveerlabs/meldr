@@ -38,9 +38,7 @@ export function parseSpec(text) {
     throw new Error(`unsupported OpenAPI version "${version || '(missing)'}", meldr wants OpenAPI 3.x`)
   }
   const warnings = []
-  const dereferenced = deref(doc, doc, [], 0, warnings)
-  const spec = convert(dereferenced, warnings)
-  return spec
+  return convert(deref(doc, doc, [], 0, warnings), warnings)
 }
 
 function isMap(v) {
