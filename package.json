@@ -1,5 +1,5 @@
 {
-  "name": "@ranveerlabs/meldr",
+  "name": "@ranveergill/meldr",
   "version": "0.1.0",
   "description": "Wire-compatible API replacements, with contracts that heal themselves off the live API.",
   "type": "module",
