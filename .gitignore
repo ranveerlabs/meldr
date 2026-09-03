@@ -28,3 +28,7 @@ desktop.ini
 
 # npm pack output
 *.tgz
+
+# meldr demo scratch
+meldr-demo/
+recording.json
