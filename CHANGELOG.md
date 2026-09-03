@@ -32,4 +32,6 @@ changelog
   contract's securitySchemes. any value passes
 - record.cases captures several responses per operation and replay picks the
   one matching the id asked for
+- meldr demo, the whole loop from an empty directory with no setup. the
+  contract it writes carries comments so you can watch them survive the heal
 

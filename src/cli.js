@@ -7,10 +7,17 @@ import { cmdVerify } from './commands/verify.js'
 import { cmdDraft } from './commands/draft.js'
 import { cmdHeal } from './commands/heal.js'
 import { cmdRecord } from './commands/record.js'
+import { cmdDemo } from './commands/demo.js'
 
 export const VERSION = '0.1.0'
 
 const COMMANDS = {
+  demo: {
+    summary: 'watch a stale contract heal itself, no setup',
+    usage: 'meldr demo [dir] [--port N]',
+    flags: { port: 'int' },
+    run: cmdDemo,
+  },
   init: {
     summary: 'scaffold a project with a starter contract',
     usage: 'meldr init [dir] [--force]',
@@ -156,10 +163,12 @@ function rootHelp() {
   }
   console.log(`    ${c.green('version '.padEnd(9))}print the version`)
   console.log('')
-  console.log('  Quickstart:')
+  console.log('  Start here:')
+  console.log('    meldr demo               # the whole idea in 30 seconds, no setup')
+  console.log('')
+  console.log('  Then:')
   console.log('    meldr init my-api && cd my-api')
   console.log('    meldr serve &')
-  console.log('    curl localhost:3000/ping')
   console.log('    meldr verify')
   console.log('')
   console.log('  Options:')

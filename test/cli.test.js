@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -122,3 +123,21 @@ async function waitForPort(port) {
   }
   throw new Error(`server on ${port} never came up`)
 }
+
+// the demo is the first thing anyone runs, it has to work from nothing
+test('demo tells the whole story from an empty directory', async () => {
+  const dir = await makeTmp()
+  const r = await runCli(['demo', '--no-color'], dir)
+  assert.equal(r.code, 0, r.out)
+
+  assert.match(r.out, /1 passed · 3 failed/, 'it should start red')
+  assert.match(r.out, /4 passed · 0 failed/, 'and finish green')
+
+  const healed = await readFile(path.join(dir, 'meldr-demo', 'contracts', 'api.yaml'), 'utf8')
+  assert.match(healed, /# Pet is shared by every route/, 'the demo promises comments survive')
+  assert.match(healed, /# upstream swore this enum would never change/)
+  assert.match(healed, /createdAt/, 'the field the live api added should be in the contract now')
+
+  // and the port it picked is free again, nothing left listening
+  assert.ok(existsSync(path.join(dir, 'meldr-demo', 'drifted.mjs')))
+})
