@@ -21,7 +21,7 @@ of a second. `node tools/demo.mjs` regenerates it
 try it without installing anything
 
 ```
-npx github:ranveerlabs/meldr demo
+npx @ranveergill/meldr demo
 ```
 
 one command, nothing installed, no account. it writes a contract and an api
@@ -95,7 +95,7 @@ heal     self-maintain: pull the contract back onto the live api
 quickstart
 
 ```
-npm install -g github:ranveerlabs/meldr
+npm install -g @ranveergill/meldr
 mkdir demo && cd demo
 meldr init
 meldr serve &

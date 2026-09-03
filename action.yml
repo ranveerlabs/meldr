@@ -40,9 +40,9 @@ inputs:
     required: false
     default: '.'
   version:
-    description: what to install. a semver range once its on npm, or a git ref
+    description: what to install, a semver range or a git ref
     required: false
-    default: 'github:ranveerlabs/meldr'
+    default: '@ranveergill/meldr@^0.1.0'
   fail-on-drift:
     description: set false to report drift without failing the build
     required: false
