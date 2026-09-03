@@ -24,8 +24,8 @@ try it without installing anything
 npx github:ranveerlabs/meldr demo
 ```
 
-one command, no setup, no account. it writes a contract and an api that has
-quietly moved on from it, then shows you the gap closing
+one command, nothing installed, no account. it writes a contract and an api
+that drifted off it, then runs the loop
 
 ```
 meldr verify --heal
@@ -81,7 +81,7 @@ allOf/oneOf/anyOf get reported and never auto-patched, too easy to wreck
 commands
 
 ```
-demo     watch a stale contract heal itself, no setup
+demo     red to green on a throwaway petstore, nothing to set up
 init     scaffold a project with a starter contract
 pull     ingest an OpenAPI 3.x contract (file or URL)
 serve    run a wire-compatible replacement server

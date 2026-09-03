@@ -13,7 +13,7 @@ export const VERSION = '0.1.0'
 
 const COMMANDS = {
   demo: {
-    summary: 'watch a stale contract heal itself, no setup',
+    summary: 'red to green on a throwaway petstore, nothing to set up',
     usage: 'meldr demo [dir] [--port N]',
     flags: { port: 'int' },
     run: cmdDemo,
@@ -164,7 +164,7 @@ function rootHelp() {
   console.log(`    ${c.green('version '.padEnd(9))}print the version`)
   console.log('')
   console.log('  Start here:')
-  console.log('    meldr demo               # the whole idea in 30 seconds, no setup')
+  console.log('    meldr demo               # red to green on a throwaway petstore')
   console.log('')
   console.log('  Then:')
   console.log('    meldr init my-api && cd my-api')

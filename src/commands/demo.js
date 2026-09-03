@@ -22,9 +22,9 @@ export async function cmdDemo(flags, args) {
   await copyFile(path.join(DATA, 'drifted.mjs'), path.join(dir, 'drifted.mjs'))
   await writeFile(path.join(dir, 'meldr.yaml'), configTemplate('meldr-demo', 'contracts/api.yaml', port))
 
-  step(1, 'a contract, and an api that quietly moved on without it')
+  step(1, 'a contract, and an api that doesnt match it')
   console.log(c.dim(`  ${path.relative(process.cwd(), dir) || dir}/contracts/api.yaml   the petstore contract`))
-  console.log(c.dim(`  ${path.relative(process.cwd(), dir) || dir}/drifted.mjs          the api, ids went to strings and a field appeared`))
+  console.log(c.dim(`  ${path.relative(process.cwd(), dir) || dir}/drifted.mjs          the api, ids are strings now and theres a new field`))
   console.log('')
 
   const server = spawn(process.execPath, [path.join(dir, 'drifted.mjs'), String(port)], { stdio: 'ignore' })
@@ -62,10 +62,10 @@ export async function cmdDemo(flags, args) {
 
   const rel = path.relative(process.cwd(), dir) || dir
   console.log('')
-  console.log(`  nobody edited that contract by hand. meldr sent one real request per`)
-  console.log(`  operation, compared it to what the contract claimed, and wrote back the`)
-  console.log(`  difference. the fix went in through the $ref so it landed in`)
-  console.log(`  components/schemas/Pet once, not four times`)
+  console.log(`  that contract wasnt edited by hand. one real request per operation,`)
+  console.log(`  compared against what the contract claimed, difference written back.`)
+  console.log(`  the id fix went in through the $ref so it landed in`)
+  console.log(`  components/schemas/Pet and every route using it moved`)
   console.log('')
   console.log(c.dim('poke at it'))
   console.log(c.dim(`  cd ${rel}`))
