@@ -8,7 +8,6 @@ export function joinPath(a, b) {
   return a.replace(/\/+$/, '') + b
 }
 
-// verify and drift both come through here so a probe and a check hit the same url
 export function buildRequest(spec, op, base, prefix, opts = {}) {
   const over = opts.params ?? { default: {} }
   const val = (p) => pinned(over, op, p.name) ?? paramValue(p)
@@ -33,7 +32,7 @@ export function buildRequest(spec, op, base, prefix, opts = {}) {
   for (const p of op.params) {
     if (p.in === 'header' && p.required) headers[p.name.toLowerCase()] = val(p)
   }
-  // yours win, a contract should never be able to overwrite your auth
+  // yours win, a contract cant overwrite your auth
   for (const [k, v] of Object.entries(opts.headers ?? {})) headers[k] = v
 
   let body
@@ -48,7 +47,7 @@ export function buildRequest(spec, op, base, prefix, opts = {}) {
   return { label: `${op.method.toUpperCase()} ${joinPath(prefix, op.path)}`, url: base + full, method: op.method.toUpperCase(), headers, body }
 }
 
-// one at a time is slow across 90 ops, all at once trips rate limits
+// one at a time is slow, all at once trips rate limits
 export async function pool(items, n, fn) {
   const out = new Array(items.length)
   let next = 0

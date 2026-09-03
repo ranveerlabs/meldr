@@ -54,8 +54,7 @@ export async function cmdHeal(flags, args) {
   if (!report.findings.length) {
     for (const u of report.unreachable) console.log(`  ${c.yellow('unreachable')} ${c.dim(u)}`)
     if (covered.length) {
-      // saying "already matches" here would be a lie, a 500 on every route is
-      // not a healthy contract, its just nothing heal is allowed to touch
+      // "already matches" would be a lie, its just nothing heal can touch
       console.log(c.yellow(`nothing to patch · ${covered.length} operation(s) answered an error a default response already covers`))
       for (const x of covered.slice(0, 5)) console.log(c.dim(`  ${x.op} -> ${x.status}`))
       if (covered.length > 5) console.log(c.dim(`  and ${covered.length - 5} more`))
@@ -96,7 +95,7 @@ export async function cmdHeal(flags, args) {
     ['info', 'x-meldr'],
     ydoc.createNode({ healedAt: new Date().toISOString(), source: report.source, applied: applied.length }),
   )
-  // match the file or every flow collection and $ref reflows and buries the real changes
+  // match the file or every flow collection and $ref reflows
     const singleQuote = (raw.match(/: '/g) ?? []).length >= (raw.match(/: "/g) ?? []).length
   const next = ydoc.toString({ lineWidth: 0, flowCollectionPadding: false, singleQuote })
 

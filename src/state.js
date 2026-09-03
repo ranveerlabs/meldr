@@ -1,9 +1,7 @@
 import { value } from './mock.js'
 import { pickSuccess } from './spec.js'
 
-// the bucket is the last named segment, so POST /users/{id}/playlists and
-// GET /playlists/{id} land in the same place. keying on the whole path meant a
-// write under a parent was invisible to the read at top level
+// last named segment, so /users/{id}/playlists and /playlists/{id} share one
 export function bucketOf(op) {
   const segs = op.path.split('/').filter(Boolean)
   if (!segs.length) return null
@@ -18,28 +16,32 @@ export function createStore() {
   return { rows: new Map(), seeded: new Set(), next: 1000 }
 }
 
-function rowsFor(store, key) {
+function bucket(store, key) {
   if (!store.rows.has(key)) store.rows.set(key, new Map())
   return store.rows.get(key)
 }
 
-function arrayResponse(op) {
+function isList(op) {
   const media = pickSuccess(op)?.content?.['application/json']
   return media && media.schema?.type === 'array' ? media : null
 }
 
-// first touch fills from the contract so a fresh client isnt staring at nothing
 function seed(store, key, listOp, idName) {
   if (store.seeded.has(key)) return
   store.seeded.add(key)
-  const media = listOp ? arrayResponse(listOp) : null
+  const media = listOp ? isList(listOp) : null
   if (!media) return
-  const rows = rowsFor(store, key)
+  const rows = bucket(store, key)
   const made = value(media.schema, '', 'out')
   for (const [i, item] of (Array.isArray(made) ? made : []).entries()) {
     if (!item || typeof item !== 'object') continue
     rows.set(String(item[idName] ?? item.id ?? i + 1), item)
   }
+}
+
+function pick(body, name) {
+  if (!body || typeof body !== 'object') return undefined
+  return body[name] ?? body.id
 }
 
 function parse(text) {
@@ -51,28 +53,27 @@ function parse(text) {
   }
 }
 
-// returns {status, body} to send, or null to let the normal mock answer
+// {status, body} to send, or null to fall through to the mock
 export function handle(store, spec, op, pathParams, bodyText) {
   const b = bucketOf(op)
   if (!b) return null
 
   const siblings = spec.operations.filter((o) => bucketOf(o)?.key === b.key)
   const itemGet = siblings.find((o) => o.method === 'get' && bucketOf(o).isItem)
-  const listGet = siblings.find((o) => o.method === 'get' && !bucketOf(o).isItem && arrayResponse(o))
+  const listGet = siblings.find((o) => o.method === 'get' && !bucketOf(o).isItem && isList(o))
   const idName = (itemGet && bucketOf(itemGet).idName) || b.idName || 'id'
   seed(store, b.key, listGet, idName)
 
-  const rows = rowsFor(store, b.key)
+  const rows = bucket(store, b.key)
   const success = pickSuccess(op)
   const ok = success && /^\d{3}$/.test(success.key) ? Number(success.key) : 200
   const body = parse(bodyText)
 
   if (!b.isItem) {
-    // only a path the contract lists as an array is a collection. /me is not
-    if (op.method === 'get') return arrayResponse(op) ? { status: ok, body: [...rows.values()] } : null
-    // and only create where something can actually read it back
+    // /me declares an object, its not a collection
+    if (op.method === 'get') return isList(op) ? { status: ok, body: [...rows.values()] } : null
     if (op.method === 'post' && itemGet) {
-      const id = String(body?.[idName] ?? body?.id ?? store.next++)
+      const id = String(pick(body, idName) ?? store.next++)
       const saved = { ...(body ?? {}) }
       if (saved[idName] === undefined && saved.id === undefined) saved[idName] = id
       rows.set(id, saved)
@@ -81,7 +82,7 @@ export function handle(store, spec, op, pathParams, bodyText) {
     return null
   }
 
-  const id = String(pathParams?.[b.idName] ?? '')
+  const id = String(pathParams[b.idName] ?? '')
   const missing = { status: 404, body: { error: 'not_found', id } }
   if (op.method === 'get') {
     const hit = rows.get(id)
@@ -115,8 +116,7 @@ export function hydrate(data) {
   store.next = Number(data.next) || store.next
   for (const [k, m] of Object.entries(data.rows ?? {})) {
     store.rows.set(k, new Map(Object.entries(m)))
-    // already has rows, dont seed the contract on top of them
-    store.seeded.add(k)
+    store.seeded.add(k) // dont seed over saved rows
   }
   return store
 }

@@ -72,8 +72,7 @@ export async function cmdDemo(flags, args) {
   return 0
 }
 
-// the demo contract carries comments on purpose, surviving them is the whole
-// reason anyone lets this near a file they maintain
+// comments on purpose, you watch them survive the heal
 function annotate(src) {
   const head = '# the petstore contract. these comments are here so you can watch them\n'
   const head2 = '# survive a heal, meldr patches the document instead of reprinting it\n'

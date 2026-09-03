@@ -1,8 +1,8 @@
 import { buildRequest, pool, send } from './verify.js'
 import { lookupResponse, pickSuccess } from './spec.js'
 
-// patches point at the raw doc, not the normalized spec, and resolve through $ref
-// on the way down so a fix to Pet.tag lands in components/schemas/Pet once
+// patches point at the raw doc and resolve through $ref on the way down, so a
+// fix to Pet.tag lands in components/schemas/Pet once
 const MAX_DEPTH = 10
 const MAX_PER_OP = 40
 
@@ -55,7 +55,6 @@ export function getAt(doc, path) {
   return node
 }
 
-// bails on external refs
 function follow(doc, cursor, hops = 0) {
   if (hops > 16 || !isMap(cursor.node)) return cursor
   const ref = typeof cursor.node.$ref === 'string' ? cursor.node.$ref : null
@@ -126,8 +125,7 @@ function compareOperation(doc, op, label, status, body, covered = []) {
   const declared = lookupResponse(op, status)
   const exact = Object.prototype.hasOwnProperty.call(op.responses, String(status))
 
-  // the success code itself moved. adding 202 next to 201 leaves verify red forever,
-  // so the real fix is to move the response node over. destructive, so it waits for --all
+  // adding 202 next to 201 leaves verify red forever, move the node instead
   const success = pickSuccess(op)
   if (!exact && success && status >= 200 && status < 300 && /^2\d\d$/.test(success.key) && String(status) !== success.key) {
     const from = [...opCursor.path, 'responses', success.key]
@@ -158,7 +156,6 @@ function compareOperation(doc, op, label, status, body, covered = []) {
   }
 
   if (!exact) {
-    // a 500 landing on a default response is the impl falling over, not drift
         if (status >= 400) covered.push({ op: label, status })
     return out
   }
@@ -176,7 +173,7 @@ function compareValue(doc, cursor, val, at, ctx, depth) {
   if (depth > MAX_DEPTH || ctx.count >= MAX_PER_OP) return
   const node = cursor.node
   if (!isMap(node)) return
-  // composed schemas get reported by verify but never auto-patched, too easy to wreck
+  // too easy to wreck
   if (node.allOf || node.oneOf || node.anyOf || node.not) return
   if (val === null && node.nullable === true) return
 
@@ -233,7 +230,7 @@ function compareValue(doc, cursor, val, at, ctx, depth) {
 
   if (!leafOk(t, val)) {
     const obs = jsonTypeOf(val)
-    // format and example were written for the old type, they go stale the moment it moves
+    // format and example were written for the old type
     const unset = []
     for (const k of ['format', 'example', 'enum']) {
       if (node[k] !== undefined) unset.push([...cursor.path, k])
@@ -249,7 +246,7 @@ function compareValue(doc, cursor, val, at, ctx, depth) {
   }
 }
 
-// shared $refs mean two operations can land on the same node, keep the first
+// shared $refs land two operations on one node
 function dedupe(findings) {
   const seen = new Set()
   const out = []
@@ -270,7 +267,7 @@ function push(ctx, f) {
   ctx.count++
 }
 
-// spliced in dereferenced, nothing should point at components we dont have
+// spliced in dereferenced, nothing points at components we dont have
 export function upstreamDrift(spec, upstream) {
   const up = upstream.doc
   const findings = []
@@ -408,7 +405,7 @@ export function summarizeDrift(findings) {
   }
 }
 
-// same patches against a yaml Document, so comments survive
+// same patches, against a Document so comments survive
 export function applyToYaml(ydoc, findings) {
   const applied = []
   const skipped = []

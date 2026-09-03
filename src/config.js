@@ -44,8 +44,7 @@ export function servePort(config, flagValue) {
   return v
 }
 
-// written as text not stringify, the commented blocks are how anyone finds out
-// these knobs exist
+// text not stringify, the commented blocks are how anyone finds these
 export function configTemplate(name, contract, port = 3000) {
   return `name: ${name}
 contract: ${contract}
@@ -100,7 +99,7 @@ paths:
                 status: ok
 `
 
-// ${TOKEN} gets pulled from the env at run time so meldr.yaml stays commitable
+// read at run time so meldr.yaml stays commitable
 function expand(v) {
   return String(v).replace(/\$\{(\w+)\}/g, (_, n) => {
     const got = process.env[n]
@@ -120,7 +119,6 @@ export function headersFor(config, flagged = []) {
   return out
 }
 
-// by operationId, or default for any param of that name
 export function paramsFor(config, flagged = []) {
   const out = { default: {} }
   for (const [k, v] of Object.entries(config.params ?? {})) {
