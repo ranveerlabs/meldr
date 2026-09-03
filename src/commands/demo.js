@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 import { parseSpec } from '../spec.js'
 import { runVerify, printReport } from '../verify.js'
-import { probeDrift, applyToYaml, summarizeDrift } from '../drift.js'
+import { probeDrift, applyToYaml } from '../drift.js'
 import { configTemplate } from '../config.js'
 import { c, pad } from '../ui.js'
 

@@ -25,3 +25,6 @@ desktop.ini
 .idea/
 .vscode/
 *.swp
+
+# npm pack output
+*.tgz

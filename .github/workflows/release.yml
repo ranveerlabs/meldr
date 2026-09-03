@@ -1,0 +1,51 @@
+name: Release
+
+# git tag v0.1.1 && git push --tags
+# needs an NPM_TOKEN repo secret, until then this never runs
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+      - run: npm test
+      - run: node tools/unused.mjs
+
+      - name: the tag and package.json have to agree
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(node -p "require('./package.json').version")
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag v$tag but package.json says $pkg"
+            exit 1
+          fi
+          echo "publishing $pkg"
+
+      - name: the tarball has to actually run
+        run: |
+          npm pack
+          tarball=$(ls *.tgz)
+          mkdir -p /tmp/smoke && cd /tmp/smoke
+          npm init -y > /dev/null
+          npm install "$GITHUB_WORKSPACE/$tarball"
+          ./node_modules/.bin/meldr version
+          ./node_modules/.bin/meldr demo --no-color | tail -3
+
+      - name: publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
