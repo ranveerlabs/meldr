@@ -103,3 +103,26 @@ test('the generated server answers exactly what serve answers', async () => {
     await live.close()
   }
 }, 30000)
+
+// the template carries its own copy of readBody, and it had no test at all
+test('the generated server also 413s instead of dropping the connection', async () => {
+  const spec = await petstoreSpec()
+  const dir = await makeTmp()
+  const out = path.join(dir, 'server.mjs')
+  await generateServer(spec, out)
+  const port = await freePort()
+  const child = spawn(process.execPath, [out, '--port', String(port)], { stdio: 'ignore' })
+  try {
+    const base = `http://127.0.0.1:${port}`
+    await waitFor(base + '/__meldr/health')
+    const res = await fetch(`${base}/v1/pets`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id: 1, name: 'x'.repeat(3 * 1024 * 1024) }),
+    })
+    assert.equal(res.status, 413)
+    assert.equal((await fetch(base + '/__meldr/health')).status, 200)
+  } finally {
+    child.kill('SIGKILL')
+  }
+}, 30000)

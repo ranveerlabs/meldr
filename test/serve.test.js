@@ -162,3 +162,23 @@ test('optional CORS mode answers preflights', async () => {
 function pickStatus(res) {
   return res.status
 }
+
+test('an oversized body gets a 413, not a dead socket', async () => {
+  const spec = await petstoreSpec()
+  const { url, close } = await startServer(spec)
+  try {
+    const huge = JSON.stringify({ id: 1, name: 'x'.repeat(3 * 1024 * 1024) })
+    const res = await fetch(`${url}/v1/pets`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: huge,
+    })
+    assert.equal(res.status, 413)
+    assert.equal((await res.json()).error, 'body_too_large')
+
+    // and the server is still answering afterwards
+    assert.equal((await fetch(`${url}/__meldr/health`)).status, 200)
+  } finally {
+    await close()
+  }
+})

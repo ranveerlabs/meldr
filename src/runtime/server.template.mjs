@@ -234,16 +234,27 @@ function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = []
     let size = 0
+    let over = false
+    // keep draining but stop buffering. pausing here fills the socket and the
+    // client blocks writing and never reads the 413 we are trying to send it
     req.on('data', (chunk) => {
       size += chunk.length
+      if (over) return
       if (size > 2 * 1024 * 1024) {
-        reject(new Error('body_too_large'))
-        req.destroy()
+        over = true
+        chunks.length = 0
         return
       }
       chunks.push(chunk)
     })
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
+    req.on('end', () => {
+      if (over) {
+        const e = new Error('body_too_large')
+        e.code = 'body_too_large'
+        return reject(e)
+      }
+      resolve(Buffer.concat(chunks).toString('utf8'))
+    })
     req.on('error', reject)
   })
 }
@@ -306,7 +317,14 @@ async function handle(req, res) {
 
   let rawBody = ''
   if (op.body) {
-    rawBody = await readBody(req)
+    try {
+      rawBody = await readBody(req)
+    } catch (e) {
+      if (e && e.code === 'body_too_large') {
+        return send(res, 413, { error: 'body_too_large', limit: 2 * 1024 * 1024 })
+      }
+      throw e
+    }
     const hasJson = Object.values(op.body.content).some((m) => m.mediaType.includes('json'))
     if (op.body.required && rawBody.trim() === '') violations.push({ in: 'body', name: 'requestBody', reason: 'required' })
     else if (rawBody.trim() !== '' && hasJson) {
