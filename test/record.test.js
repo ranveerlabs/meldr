@@ -158,3 +158,41 @@ test('a case per id records each one and replays the right one back', async () =
     await new Promise((r) => server.close(r))
   }
 })
+
+test('strict refuses to answer for an id that was never recorded', async () => {
+  const spec = await petstoreSpec()
+  const db = { 7: 'Ziggy', 8: 'Bowie' }
+  const live = await serve((req, res) => {
+    const m = new URL(req.url, 'http://x').pathname.match(/\/v1\/pets\/(\d+)$/)
+    res.writeHead(200, { 'content-type': 'application/json' })
+    if (m) return res.end(JSON.stringify({ id: Number(m[1]), name: db[m[1]] ?? 'unknown' }))
+    res.end(JSON.stringify(Object.entries(db).map(([id, name]) => ({ id: Number(id), name }))))
+  })
+  let rec
+  try {
+    rec = await runRecord(spec, { base: live.url, cases: { showPetById: [{ id: 7 }, { id: 8 }] } })
+  } finally {
+    await live.close()
+  }
+
+  const loose = createServer(spec, { replay: replayIndex(rec) })
+  const strict = createServer(spec, { replay: replayIndex(rec), strictReplay: true })
+  await new Promise((r) => loose.listen(0, '127.0.0.1', r))
+  await new Promise((r) => strict.listen(0, '127.0.0.1', r))
+  const l = `http://127.0.0.1:${loose.address().port}`
+  const s = `http://127.0.0.1:${strict.address().port}`
+  try {
+    // recorded ids answer the same either way
+    assert.equal((await (await fetch(`${l}/v1/pets/7`)).json()).name, 'Ziggy')
+    assert.equal((await (await fetch(`${s}/v1/pets/7`)).json()).name, 'Ziggy')
+
+    // 99 was never taped. loose hands back someone else's pet, strict does not
+    assert.equal((await (await fetch(`${l}/v1/pets/99`)).json()).name, 'Ziggy')
+    const miss = await fetch(`${s}/v1/pets/99`)
+    assert.equal(miss.status, 404)
+    assert.equal((await miss.json()).error, 'not_recorded')
+  } finally {
+    await new Promise((r) => loose.close(r))
+    await new Promise((r) => strict.close(r))
+  }
+})

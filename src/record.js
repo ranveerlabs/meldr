@@ -98,8 +98,9 @@ export function replayIndex(recording) {
   return map
 }
 
-// an entry pinned to the id you asked for wins, otherwise the first one taped
-export function pickEntry(entries, vars, searchParams) {
+// an entry pinned to the id you asked for wins, otherwise the first one taped.
+// strict refuses to hand you a different id's answer and lets serve 404 instead
+export function pickEntry(entries, vars, searchParams, strict = false) {
   if (!entries || !entries.length) return null
   for (const e of entries) {
     if (!e.params) continue
@@ -109,7 +110,9 @@ export function pickEntry(entries, vars, searchParams) {
     })
     if (hit) return e
   }
-  return entries.find((e) => !e.params) ?? entries[0]
+  const loose = entries.find((e) => !e.params)
+  if (loose) return loose
+  return strict ? null : entries[0]
 }
 
 export function summarizeRecording(recording) {

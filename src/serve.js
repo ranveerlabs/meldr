@@ -170,7 +170,15 @@ async function handleRequest(req, res, spec, opts) {
   }
 
   // a recording of the real thing beats anything synthesised from the schema
-  const taped = pickEntry(opts.replay?.get(`${op.method} ${op.path}`), vars, url.searchParams)
+  const tapes = opts.replay?.get(`${op.method} ${op.path}`)
+  const taped = pickEntry(tapes, vars, url.searchParams, opts.strictReplay)
+  if (!taped && tapes?.length && opts.strictReplay && forced === undefined) {
+    return respond(res, 404, {
+      error: 'not_recorded',
+      message: `nothing was recorded for ${req.method} ${url.pathname}`,
+      recorded: tapes.map((e) => e.params).filter(Boolean),
+    })
+  }
   if (taped && forced === undefined) {
     const headers2 = taped.contentType ? { 'content-type': taped.contentType } : {}
     if (opts.cors) applyCors(res)

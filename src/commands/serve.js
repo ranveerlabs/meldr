@@ -35,7 +35,8 @@ export async function cmdServe(flags, args, ctx) {
 
   const stateful = flags.stateful ?? config.stateful === true
   const requireAuth = flags['require-auth'] ?? config.requireAuth === true
-  const server = createServer(spec, { cors, replay, requireAuth, state: stateful ? createStore() : null })
+  const strictReplay = flags.strict ?? config.strict === true
+  const server = createServer(spec, { cors, replay, requireAuth, strictReplay, state: stateful ? createStore() : null })
   await new Promise((resolve, reject) => {
     server.once('error', reject)
     server.listen(port, host, resolve)
