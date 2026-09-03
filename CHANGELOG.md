@@ -34,4 +34,8 @@ changelog
   one matching the id asked for
 - meldr demo, the whole loop from an empty directory with no setup. the
   contract it writes carries comments so you can watch them survive the heal
+- meldr serve --strict, 404 on an id that was never recorded instead of
+  handing back a different one
+- meldr serve --state-file, the store is written out and read back so a
+  session survives a restart
 

@@ -149,8 +149,8 @@ record:
 ```
 
 replay picks the entry matching the id you asked for. ask for an id that was
-never taped and you get the first one back, not a 404, so keep that in mind
-before you trust a response you didnt record
+never taped and you get the first one back so you can keep poking around,
+--strict 404s instead and tells you which ids it does have
 
 building against it
 
@@ -164,7 +164,10 @@ meldr serve --stateful --require-auth
 POST to a collection keeps it, GET the item reads it back, PUT and PATCH update
 it, DELETE means the next read is a 404, and the list reflects all of it. the
 collection seeds itself from the contract on first touch so a fresh client isnt
-staring at an empty page. it lives in memory and dies with the server
+staring at an empty page
+
+in memory by default, --state-file state.json writes it out and picks it back
+up next time so a session survives a restart
 
 --require-auth 401s anything without a credential, honouring whatever
 securitySchemes the contract declares. any value passes, its there so you can
