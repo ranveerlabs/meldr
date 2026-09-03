@@ -102,3 +102,23 @@ export function handle(store, spec, op, pathParams, bodyText) {
   }
   return null
 }
+
+export function serialize(store) {
+  const rows = {}
+  for (const [k, m] of store.rows) rows[k] = Object.fromEntries(m)
+  return { meldr: 1, next: store.next, rows }
+}
+
+export function hydrate(data) {
+  const store = createStore()
+  if (!data || typeof data !== 'object') return store
+  store.next = Number(data.next) || store.next
+  for (const [k, m] of Object.entries(data.rows ?? {})) {
+    store.rows.set(k, new Map(Object.entries(m)))
+    // already has rows, dont seed the contract on top of them
+    store.seeded.add(k)
+  }
+  return store
+}
+
+export const WRITES = new Set(['post', 'put', 'patch', 'delete'])

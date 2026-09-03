@@ -1,7 +1,7 @@
 import http from 'node:http'
 import { selectMedia, value, mediaExample, preferJson } from './mock.js'
 import { lookupResponse, pickSuccess, declaredStatusKeys } from './spec.js'
-import { handle as handleState } from './state.js'
+import { handle as handleState, WRITES } from './state.js'
 import { pickEntry } from './record.js'
 import { c } from './ui.js'
 
@@ -161,6 +161,7 @@ async function handleRequest(req, res, spec, opts) {
   // writes have to survive a read or you cant build anything past a list view
   if (opts.state && forced === undefined) {
     const out = handleState(opts.state, spec, op, vars, rawBody)
+    if (out && WRITES.has(op.method)) opts.persist?.(opts.state)
     if (out) {
       if (opts.cors) applyCors(res)
       const h = out.body === null ? {} : { 'content-type': 'application/json; charset=utf-8' }

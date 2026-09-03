@@ -1,7 +1,7 @@
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { loadConfig, servePort, contractPath } from '../config.js'
 import { replayIndex, summarizeRecording } from '../record.js'
-import { createStore } from '../state.js'
+import { createStore, hydrate, serialize } from '../state.js'
 import { loadSpec } from '../spec.js'
 import { createServer, routeList } from '../serve.js'
 import { CliError, c, pad } from '../ui.js'
@@ -36,13 +36,27 @@ export async function cmdServe(flags, args, ctx) {
   const stateful = flags.stateful ?? config.stateful === true
   const requireAuth = flags['require-auth'] ?? config.requireAuth === true
   const strictReplay = flags.strict ?? config.strict === true
-  const server = createServer(spec, { cors, replay, requireAuth, strictReplay, state: stateful ? createStore() : null })
+  const stateFile = flags['state-file'] ?? config.stateFile
+  let store = null
+  let persist
+  if (stateful) {
+    store = createStore()
+    if (stateFile) {
+      try {
+        store = hydrate(JSON.parse(await readFile(stateFile, 'utf8')))
+      } catch {
+        // no file yet, or junk in it. start clean and overwrite on first write
+      }
+      persist = queueWrites(stateFile)
+    }
+  }
+  const server = createServer(spec, { cors, replay, requireAuth, strictReplay, state: store, persist })
   await new Promise((resolve, reject) => {
     server.once('error', reject)
     server.listen(port, host, resolve)
   })
 
-  printBanner(spec, host, port, replay?.size ?? 0, stateful, requireAuth)
+  printBanner(spec, host, port, replay?.size ?? 0, stateful, requireAuth, stateFile)
 
   await new Promise((resolve) => {
     const stop = () => {
@@ -53,6 +67,30 @@ export async function cmdServe(flags, args, ctx) {
     process.once('SIGTERM', stop)
   })
   return 0
+}
+
+// one write in flight at a time, the last state always wins
+function queueWrites(file) {
+  let busy = false
+  let again = false
+  const flush = async (store) => {
+    if (busy) {
+      again = true
+      return
+    }
+    busy = true
+    try {
+      await writeFile(file, JSON.stringify(serialize(store), null, 2) + '\n')
+    } catch (e) {
+      console.error(`[meldr] state:rip ${e.message}`)
+    }
+    busy = false
+    if (again) {
+      again = false
+      await flush(store)
+    }
+  }
+  return flush
 }
 
 async function loadSpecOrHint(contractPath) {
@@ -66,7 +104,7 @@ async function loadSpecOrHint(contractPath) {
   }
 }
 
-function printBanner(spec, host, port, replayed, stateful, requireAuth) {
+function printBanner(spec, host, port, replayed, stateful, requireAuth, stateFileNote) {
   const routes = routeList(spec)
   console.log('')
   console.log(`  ${c.cyan(c.bold('meldr'))} serving ${c.bold(spec.title)} v${spec.version}`)
@@ -77,7 +115,7 @@ function printBanner(spec, host, port, replayed, stateful, requireAuth) {
   }
   console.log('')
   if (replayed) console.log(c.dim(`  replaying ${replayed} recorded operation(s), the rest fall back to the contract`))
-  if (stateful) console.log(c.dim(`  stateful, writes survive until you stop the server`))
+  if (stateful) console.log(c.dim(stateFileNote ? `  stateful, kept in ${stateFileNote}` : `  stateful, writes survive until you stop the server`))
   if (requireAuth) console.log(c.dim(`  401 on anything without a credential, any value passes`))
   console.log(c.dim(`  introspection: /__meldr/routes · /__meldr/contract · /__meldr/health`))
   console.log(c.dim(`  curl -H "X-Meldr-Status: <code>" any endpoint forces a declared response`))

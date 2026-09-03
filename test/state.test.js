@@ -217,3 +217,39 @@ test('a singleton stays an object and an rpc call invents nothing', async () => 
     await close()
   }
 })
+
+test('state comes back after a restart', async () => {
+  const { serialize, hydrate } = await import('../src/state.js')
+  const spec = await petstoreSpec()
+
+  const first = createStore()
+  const a = await up(spec, { state: first })
+  try {
+    await fetch(`${a.url}/v1/pets`, { method: 'POST', headers: json, body: JSON.stringify({ id: 777, name: 'Ziggy' }) })
+    await fetch(`${a.url}/v1/pets/42`, { method: 'DELETE' })
+  } finally {
+    await a.close()
+  }
+
+  const onDisk = JSON.parse(JSON.stringify(serialize(first)))
+  const b = await up(spec, { state: hydrate(onDisk) })
+  try {
+    assert.equal((await (await fetch(`${b.url}/v1/pets/777`)).json()).name, 'Ziggy')
+    assert.equal((await fetch(`${b.url}/v1/pets/42`)).status, 404, 'a delete has to survive too')
+  } finally {
+    await b.close()
+  }
+})
+
+test('hydrating does not let the contract seed over saved rows', async () => {
+  const { hydrate } = await import('../src/state.js')
+  const spec = await petstoreSpec()
+  const { url, close } = await up(spec, { state: hydrate({ meldr: 1, next: 1000, rows: { pets: { 1: { id: 1, name: 'Only' } } } }) })
+  try {
+    const list = await (await fetch(`${url}/v1/pets`)).json()
+    assert.equal(list.length, 1)
+    assert.equal(list[0].name, 'Only')
+  } finally {
+    await close()
+  }
+})
