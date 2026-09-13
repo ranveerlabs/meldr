@@ -32,7 +32,6 @@ export function buildRequest(spec, op, base, prefix, opts = {}) {
   for (const p of op.params) {
     if (p.in === 'header' && p.required) headers[p.name.toLowerCase()] = val(p)
   }
-  // yours win, a contract cant overwrite your auth
   for (const [k, v] of Object.entries(opts.headers ?? {})) headers[k] = v
 
   let body
@@ -47,7 +46,6 @@ export function buildRequest(spec, op, base, prefix, opts = {}) {
   return { label: `${op.method.toUpperCase()} ${joinPath(prefix, op.path)}`, url: base + full, method: op.method.toUpperCase(), headers, body }
 }
 
-// one at a time is slow, all at once trips rate limits
 export async function pool(items, n, fn) {
   const out = new Array(items.length)
   let next = 0
@@ -61,7 +59,6 @@ export async function pool(items, n, fn) {
   return out
 }
 
-// 429 means slow down, not drift
 export async function send(url, init, timeoutMs, tries = 3) {
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) })

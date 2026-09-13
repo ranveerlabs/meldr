@@ -72,7 +72,6 @@ export async function cmdDemo(flags, args) {
   return 0
 }
 
-// comments on purpose, you watch them survive the heal
 function annotate(src) {
   const head = '# the petstore contract. these comments are here so you can watch them\n'
   const head2 = '# survive a heal, meldr patches the document instead of reprinting it\n'
@@ -105,7 +104,6 @@ async function waitFor(url) {
     try {
       if ((await fetch(url)).ok) return
     } catch {
-      /* not up yet */
     }
     await new Promise((r) => setTimeout(r, 50))
   }

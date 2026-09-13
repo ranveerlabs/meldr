@@ -34,8 +34,6 @@ const NAME_VALUES = {
   label: 'core',
 }
 
-// after the exact table, first match wins. the index is what stops every
-// element of an array coming back identical
 const NAME_RULES = [
   [/(^|_)ids?$|Ids?$/, (i) => `id_${i + 1}`],
   [/(url|uri|href)$/i, (i) => `https://example.com/resource/${i + 1}`],

@@ -23,7 +23,7 @@ export async function cmdHeal(flags, args) {
   }
 
   const spec = parseSpec(raw)
-  const doc = YAML.parse(raw) // pristine, $refs intact. patches land here
+  const doc = YAML.parse(raw)
 
   const upstream = flags.upstream ?? args[0]
   let report
@@ -54,7 +54,6 @@ export async function cmdHeal(flags, args) {
   if (!report.findings.length) {
     for (const u of report.unreachable) console.log(`  ${c.yellow('unreachable')} ${c.dim(u)}`)
     if (covered.length) {
-      // "already matches" would be a lie, its just nothing heal can touch
       console.log(c.yellow(`nothing to patch · ${covered.length} operation(s) answered an error a default response already covers`))
       for (const x of covered.slice(0, 5)) console.log(c.dim(`  ${x.op} -> ${x.status}`))
       if (covered.length > 5) console.log(c.dim(`  and ${covered.length - 5} more`))
@@ -95,7 +94,6 @@ export async function cmdHeal(flags, args) {
     ['info', 'x-meldr'],
     ydoc.createNode({ healedAt: new Date().toISOString(), source: report.source, applied: applied.length }),
   )
-  // match the file or every flow collection and $ref reflows
   const singleQuote = (raw.match(/: '/g) ?? []).length >= (raw.match(/: "/g) ?? []).length
   const next = ydoc.toString({ lineWidth: 0, flowCollectionPadding: false, singleQuote })
 
@@ -168,7 +166,6 @@ async function writeReport(file, contract, report, applied, summary) {
   console.log(c.dim(`  drift report -> ${file}`))
 }
 
-// mutates doc in place
 async function aiPass(doc, raw, report, flags) {
   const manual = report.findings.filter((f) => !f.patch)
   if (!manual.length) return
@@ -189,7 +186,6 @@ async function aiPass(doc, raw, report, flags) {
     throw new CliError(`could not parse healed spec: ${e.message}`)
   }
   if (!healed.paths || typeof healed.paths !== 'object') throw new CliError('healed spec has no paths')
-  // only paths get taken from the model, info/servers/components stay ours
   doc.paths = healed.paths
   console.log(c.yellow('  those paths came from a model, read every one before shipping'))
 }

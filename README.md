@@ -273,4 +273,10 @@ a key lives in memory for the one command that used it. never written to disk,
 never cached, never logged, and output gets scrubbed with [redacted] on the way
 out. no telemetry, nothing phones home, it all runs locally
 
+server internals
+
+serve keeps draining an oversized request after it stops buffering. pausing
+the stream can leave the client blocked on a write before it reads the 413.
+the generated server does the same
+
 license: apache-2.0

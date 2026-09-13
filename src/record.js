@@ -2,7 +2,6 @@ import { buildRequest, pool, send } from './verify.js'
 
 export const FORMAT = 1
 
-// recordings get committed
 const SECRETS = /^(access_token|refresh_token|id_token|client_secret|password|api_key|apikey|authorization)$/i
 const PLACEHOLDER = '[scrubbed]'
 
@@ -14,7 +13,6 @@ export async function runRecord(spec, opts = {}) {
   const timeoutMs = opts.timeoutMs ?? 15000
   let scrubbed = 0
 
-  // one job per case so /tracks/{id} captures more than one track
   const cases = opts.cases ?? {}
   const jobs = []
   for (const op of spec.operations) {
@@ -97,7 +95,6 @@ export function replayIndex(recording) {
   return map
 }
 
-// a pinned id wins, otherwise the first one taped. strict refuses instead
 export function pickEntry(entries, vars, searchParams, strict = false) {
   if (!entries || !entries.length) return null
   for (const e of entries) {

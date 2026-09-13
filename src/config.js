@@ -44,7 +44,6 @@ export function servePort(config, flagValue) {
   return v
 }
 
-// text not stringify, the commented blocks are how anyone finds these
 export function configTemplate(name, contract, port = 3000) {
   return `name: ${name}
 contract: ${contract}
@@ -99,7 +98,6 @@ paths:
                 status: ok
 `
 
-// read at run time so meldr.yaml stays commitable
 function expand(v) {
   return String(v).replace(/\$\{(\w+)\}/g, (_, n) => {
     const got = process.env[n]

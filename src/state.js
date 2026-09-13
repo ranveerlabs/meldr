@@ -1,7 +1,6 @@
 import { value } from './mock.js'
 import { pickSuccess } from './spec.js'
 
-// last named segment, so /users/{id}/playlists and /playlists/{id} share one
 export function bucketOf(op) {
   const segs = op.path.split('/').filter(Boolean)
   if (!segs.length) return null
@@ -53,7 +52,6 @@ function parse(text) {
   }
 }
 
-// {status, body} to send, or null to fall through to the mock
 export function handle(store, spec, op, pathParams, bodyText) {
   const b = bucketOf(op)
   if (!b) return null
@@ -70,7 +68,6 @@ export function handle(store, spec, op, pathParams, bodyText) {
   const body = parse(bodyText)
 
   if (!b.isItem) {
-    // /me declares an object, its not a collection
     if (op.method === 'get') return isList(op) ? { status: ok, body: [...rows.values()] } : null
     if (op.method === 'post' && itemGet) {
       const id = String(pick(body, idName) ?? store.next++)
@@ -116,7 +113,7 @@ export function hydrate(data) {
   store.next = Number(data.next) || store.next
   for (const [k, m] of Object.entries(data.rows ?? {})) {
     store.rows.set(k, new Map(Object.entries(m)))
-    store.seeded.add(k) // dont seed over saved rows
+    store.seeded.add(k)
   }
   return store
 }

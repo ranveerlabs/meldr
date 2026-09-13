@@ -28,8 +28,6 @@ const PROVIDERS = {
   },
 }
 
-// anything not named here is openai shaped, covers openrouter groq together
-// deepseek ollama and most local servers
 function describe(provider) {
   if (PROVIDERS[provider]) return PROVIDERS[provider]
   const up = provider.toUpperCase().replace(/[^A-Z0-9]/g, '_')

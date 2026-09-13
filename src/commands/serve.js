@@ -45,7 +45,6 @@ export async function cmdServe(flags, args, ctx) {
       try {
         store = hydrate(JSON.parse(await readFile(stateFile, 'utf8')))
       } catch {
-        // no file yet, or junk in it. start clean and overwrite on first write
       }
       persist = queueWrites(stateFile)
     }
@@ -69,7 +68,6 @@ export async function cmdServe(flags, args, ctx) {
   return 0
 }
 
-// one write in flight at a time, the last state always wins
 function queueWrites(file) {
   let busy = false
   let again = false

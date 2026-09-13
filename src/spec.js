@@ -168,7 +168,6 @@ function extractServers(servers) {
     try {
       if (/^https?:\/\//i.test(u)) u = new URL(u).pathname
     } catch {
-      /* keep raw */
     }
     if (!u.startsWith('/')) u = `/${u}`
     while (u.length > 1 && u.endsWith('/')) u = u.slice(0, -1)
