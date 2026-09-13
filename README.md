@@ -6,13 +6,11 @@
 ██      ██  ████████  ████████ ████████   ██    ██ 
 ```
 
-meldr, wire-compatible API replacements without the rebuild
+meldr checks a live api against its openapi contract and patches the drift
 
-your openapi file is lying to you. an id went from int to string, a 201 turned
-into a 202 in some deploy, the api started sending a field nobody wrote down,
-and the yaml sitting in your repo says none of it. meldr sends one real request
-per operation, reads what actually came back, and patches the contract where the
-two disagree
+an id went from int to string, a 201 turned into a 202, a new field never made
+it into the yaml. meldr sends one real request per operation and compares the
+response with the contract
 
 ![meldr verify --heal](https://raw.githubusercontent.com/ranveerlabs/meldr/main/assets/demo.svg)
 
@@ -25,8 +23,8 @@ try it without installing anything
 npx @ranveergill/meldr demo
 ```
 
-it writes a contract and an api that drifted off it into a throwaway dir, then
-runs the loop. no account, nothing installed
+the demo writes a contract and an api that no longer matches it into a
+throwaway dir, then runs this
 
 ```
 meldr verify --heal
@@ -60,14 +58,12 @@ GET /v1/pets/{id}     PASS 200
   still red · `meldr verify --heal --all` takes the destructive fixes too
 ```
 
-FIX goes in on sight, RISK sits there until you pass --all bcuz it deletes
-something. thats the one held back up there, the run ends 3 and 1 instead of 4
-and 0
+the status change stays red because taking it would remove the old response
+from the contract. pass --all to include that patch
 
-patches land through the $ref, so a fix to Pet.id goes into
-components/schemas/Pet and every operation using it moves at once. read the git
-diff after, its a normal yaml diff. heal also stamps info.x-meldr with when it
-ran and how many patches it took, delete that if it annoys you
+a fix to Pet.id follows the $ref into components/schemas/Pet, so it also fixes
+the other operations using Pet. heal adds the time and patch count under
+info.x-meldr. check the yaml diff after running it
 
 ```
 fixed on sight
@@ -95,7 +91,7 @@ gen      generate a standalone, dependency-free editable server
 verify   verify a running implementation against the contract
 draft    BYOK: draft a contract from a description via your own AI key
 record   capture the real API so you can serve it back offline
-heal     self-maintain: pull the contract back onto the live api
+heal     patch the contract against the live api
 ```
 
 quickstart
@@ -120,19 +116,17 @@ meldr gen
 node server.mjs
 ```
 
-record it while you still can
+recording
 
-if the api youre depending on is going away, or sits behind a subscription, or
-is rate limited into uselessness, tape it once and serve it back
+record saves live responses for offline use
 
 ```
 meldr record --base https://api.example.com --header "Authorization: Bearer $TOKEN"
 meldr serve --from recording.json
 ```
 
-one real request per operation, the actual bodies saved to json. after that
-upstream can go dark and the dev loop keeps going. its real data, so the ids and
-the pagination and the error shapes are the ones you actually get
+it makes one real request per operation and saves the bodies to json, including
+the ids, pagination and error shapes the api returned
 
 access_token, refresh_token, client_secret and friends get replaced with
 [scrubbed] before anything is written and it tells you how many it caught. read
@@ -156,23 +150,21 @@ replay picks the entry matching the id you asked for. ask for an id that was
 never taped and you get the first one back so you can keep poking around,
 --strict 404s instead and tells you which ids it does have
 
-building against it
+keeping writes
 
-a mock that forgets everything is a read only view, you cant build a playlist
-editor against it. --stateful gives you a store
+use --stateful when you need to read back things your client created
 
 ```
 meldr serve --stateful --require-auth
 ```
 
-POST to a collection keeps it, GET the item reads it back, PUT and PATCH update
-it, DELETE means the next read is a 404, and the list reflects all of it. the
-collection seeds itself from the contract on first touch so a fresh client isnt
-staring at an empty page
+you can POST an item and GET it back, change it with PUT or PATCH, then DELETE
+it and get a 404 on the next read. the list includes those changes too. a
+collection starts with data from the contract when you first use it
 
 the store buckets on the last named segment of the path, so
 /users/{id}/playlists and /playlists/{id} land in the same one. its a heuristic
-and a weird enough set of paths will collide them wrong
+and some paths will end up sharing a store when they shouldnt
 
 in memory by default, --state-file state.json writes it out and picks it back up
 next time so a session survives a restart
@@ -185,8 +177,9 @@ both are off unless you ask, so verify and gen stay deterministic
 
 pointing it at a real api
 
-synthetic ids 404 and unauthenticated calls 401, so both are worth pinning.
-meldr.yaml holds them and ${ENV} is read at run time, the file stays commitable
+generated ids can get a 404 from a real api, and missing credentials get a 401.
+put working values in meldr.yaml. ${ENV} reads from your environment at run time
+so you can commit the config without the token
 
 ```yaml
 headers:
@@ -213,10 +206,8 @@ see it before it writes
 meldr heal --diff
 ```
 
-comments survive bcuz the patch goes into a yaml Document instead of a reprint.
-quote style it guesses, counting `: '` against `: "` in your file and going with
-whichever wins, crude but it keeps the whole document from reflowing into the
-other one. so the diff is the three real changes
+heal edits the existing yaml Document, including its comments. it counts
+`: '` and `: "` to choose whichever quote style you already use more
 
 upstream drift
 
@@ -232,8 +223,8 @@ bodies
 
 ci gate
 
-meldr heal --check writes nothing and exits 1 on drift. theres an action so you
-dont have to wire it yourself
+use meldr heal --check in ci to exit 1 on drift without writing a patch.
+you can run it through the action:
 
 ```yaml
 - uses: ranveerlabs/meldr@main
@@ -255,8 +246,7 @@ or by hand if you want the pieces
 the action takes base, contract, upstream, report, working-directory, version
 and fail-on-drift, and sets a `drifted` output so a later step can open the PR
 
-drift.json is stable, kind/op/at/detail/safety/patchable per finding plus a
-summary. wire it to whatever opens the PR
+drift.json has kind/op/at/detail/safety/patchable per finding plus a summary
 
 the leftovers no rule can patch go to --ai, opt-in and BYOK, and it only ever
 replaces `paths`. info, servers and components stay yours
