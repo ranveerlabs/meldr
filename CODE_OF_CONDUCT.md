@@ -1,10 +1,10 @@
 code of conduct
 
-keep it chill. be kind, respect that people disagree with you, take the
-feedback, own it when you get something wrong
+Be kind. People will disagree, and thats fine. Take feedback and own it when you
+get something wrong.
 
-harassment, trolling, personal attacks, posting someones private info. those
-are the lines, dont
+Harassment, trolling, personal attacks and posting someones private information
+are not okay.
 
-report anything through github. this follows the contributor covenant in spirit
-if not in text
+Report problems through GitHub. This follows the Contributor Covenant in spirit,
+though it doesnt use the full text.

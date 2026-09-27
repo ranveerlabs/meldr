@@ -4,19 +4,19 @@ security
 | ------- | --------- |
 | 0.1.x   | yes       |
 
-dont open a public issue for a security bug. github private reporting is the
-way in:
+Please dont open a public issue for a security bug. Use GitHub's private
+reporting form:
 
 <https://github.com/ranveerlabs/meldr/security/advisories/new>
 
-put a description in it, repro steps, which versions it hits, and a poc if you
-have one. you get a first response inside 7 days
+Include a description, steps to reproduce it, affected versions and a proof of
+concept if you have one. I aim to respond within 7 days.
 
-meldr is a dev tool. dont point it at APIs youre not allowed to test, and dont
-commit tokens into contract files
+Meldr is a developer tool. Only test APIs you have permission to use, and dont
+put tokens in contract files.
 
 keys
-  they come out of env vars and sit in process memory for exactly as long as
-  the one command that used them. never written to disk, never cached, never in
-  a log, and scrubbed out of error messages before anything prints. the only
-  outbound request carrying a key goes to the provider base url you set yourself
+  Keys come from environment variables and stay in process memory only while the
+  command using them runs. Meldr doesnt write or cache them, include them in logs,
+  or leave them in printed errors. Requests that carry a key go only to the
+  provider base URL you configured.

@@ -1,16 +1,16 @@
 # meldr
 
-Meldr checks a live API against its OpenAPI file. If they disagree, it shows why and can update the file.
+`meldr verify` sends a request for each operation in an OpenAPI file and compares the response with the contract. `meldr heal` writes a patch for safe differences. `--all` pulls in the ones that need review too, so check the YAML before keeping it.
 
 ```sh
 npx @ranveergill/meldr demo
 ```
 
-This runs a demo in a temporary folder. No setup needed.
+The demo runs in a throwaway directory. You can try it without setting up an API.
 
 ![meldr verify --heal](https://raw.githubusercontent.com/ranveerlabs/meldr/main/assets/demo.svg)
 
-## Try it
+## run it
 
 ```sh
 npm install -g @ranveergill/meldr
@@ -20,18 +20,16 @@ meldr verify
 meldr heal --diff
 ```
 
-`verify` sends one request for each operation and compares the replies with the file. `heal` fixes simple mismatches. Add `--all` to apply the ones that need a closer look too. Check the YAML diff before keeping the changes.
+## commands
 
-## Commands
+`init` scaffolds a project and `pull` imports OpenAPI. `serve` runs a mock, `gen` makes a standalone server, `record` saves responses, and `draft` writes a spec from a description.
 
-`init` start a project · `pull` get an OpenAPI file · `serve` run a mock API · `gen` make a standalone server · `verify` compare an API · `heal` update the file · `record` save replies · `draft` make a file from a description
-
-Use `meldr heal --check` in CI to check for changes without editing the file.
+I use `meldr heal --check` in CI. It fails on drift without writing a patch.
 
 ## Notes
 
-- `record` hides common credential fields, but replies can still contain private data. Check the file before sharing it.
+- `record` replaces common credential fields with `[scrubbed]`, but response bodies can still have private data. Read the file before sharing or committing it.
 - `draft` uses your API key for that run. Meldr doesn't save it.
-- Saved server state is optional.
+- Stateful serving is opt-in. Plain `serve` and `gen` are deterministic.
 
 [CLI details](src/cli.js) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [License](LICENSE)

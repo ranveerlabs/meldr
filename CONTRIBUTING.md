@@ -1,20 +1,22 @@
 contributing
 
-node 20+, clone it, npm install, npm test. thats the whole setup, theres no
-build step and the source is plain ESM
+You need Node 20 or newer. Clone the repo, run `npm install`, then `npm test`.
+There is no build step, the source is plain ESM.
 
-to try a change, npm link the package, make a demo dir somewhere, then
-`meldr init && meldr serve &` and poke at it with meldr verify
+To try a change locally, run `npm link`, make a demo directory, then start it
+with `meldr init && meldr serve &`. `meldr verify` exercises the mock against
+the contract.
 
-things the project actually cares about. no build step. few dependencies and a
-new one needs a real argument behind it. bug fixes come with a regression test.
-output stays deterministic unless you opt into randomness on purpose.
-windows/macos/linux all have to work, ci runs all three so dont guess
+Please keep dependencies light. A new one needs a concrete reason, and bug fixes
+should come with a regression test. Output stays deterministic unless a user opts
+into randomness. Windows, macOS and Linux all need to work; CI runs on all three.
 
-prs branch off main, one change each, npm test green. say what you did and how
-you checked it. readme.md and changelog.md move when user-facing behavior moves
+Branch pull requests from `main` and keep each one to a single change. Make sure
+`npm test` passes, then say what changed and how you checked it. Update the README
+and changelog when user-facing behavior changes.
 
-for a bug, open an issue with what you ran, what you expected, what actually
-happened, and the smallest contract file that does it
+For a bug report, include what you ran, what you expected, what happened instead,
+and the smallest contract file that reproduces it.
 
-security stuff doesnt go in a public issue, security.md has the details
+Please dont report security bugs in public issues. See [SECURITY.md](SECURITY.md)
+for the private reporting link.
